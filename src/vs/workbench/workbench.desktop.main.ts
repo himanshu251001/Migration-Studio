@@ -220,6 +220,9 @@ import './contrib/keybindingsExport/electron-browser/keybindingsExport.contribut
 // System-wide (OS global) Keybindings
 import './contrib/keybindings/electron-browser/systemWideKeybindings.contribution.js';
 
+// Customization layer (Next.js)
+import './contrib/customization/electron-browser/customization.contribution.js';
+
 //#endregion
 
 

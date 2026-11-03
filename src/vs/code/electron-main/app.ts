@@ -43,6 +43,8 @@ import { BrowserViewMainService, IBrowserViewMainService } from '../../platform/
 import { BrowserViewGroupMainService, IBrowserViewGroupMainService } from '../../platform/browserView/electron-main/browserViewGroupMainService.js';
 import { NativeParsedArgs } from '../../platform/environment/common/argv.js';
 import { IEnvironmentMainService } from '../../platform/environment/electron-main/environmentMainService.js';
+import { CUSTOMIZATION_SERVER_CHANNEL } from '../../platform/customizationServer/common/customizationServer.js';
+import { CustomizationServerMainService } from '../../platform/customizationServer/electron-main/customizationServerMainService.js';
 import { isLaunchedFromCli } from '../../platform/environment/node/argvHelper.js';
 import { getResolvedShellEnv } from '../../platform/shell/node/shellEnv.js';
 import { IExtensionHostStarter, ipcExtensionHostStarterChannelName } from '../../platform/extensions/common/extensionHostStarter.js';
@@ -1427,6 +1429,10 @@ export class CodeApplication extends Disposable {
 		// Process
 		const processChannel = ProxyChannel.fromService(new ProcessMainService(this.logService, accessor.get(IDiagnosticsService), accessor.get(IDiagnosticsMainService)), disposables);
 		mainProcessElectronServer.registerChannel('process', processChannel);
+
+		// Customization layer (Next.js host)
+		const customizationServer = disposables.add(new CustomizationServerMainService(this.logService, accessor.get(IEnvironmentMainService)));
+		mainProcessElectronServer.registerChannel(CUSTOMIZATION_SERVER_CHANNEL, ProxyChannel.fromService(customizationServer, disposables));
 
 		// Encryption
 		const encryptionChannel = ProxyChannel.fromService(accessor.get(IEncryptionMainService), disposables);
