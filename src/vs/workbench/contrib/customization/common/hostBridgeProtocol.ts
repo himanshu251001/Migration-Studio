@@ -18,13 +18,34 @@ export interface IReadyMessage {
 	readonly payload: { readonly route: string };
 }
 
-export type HostBridgeInboundMessage = IReadyMessage;
+/** Asks the workbench to open `route` of the embedded app in an editor tab. */
+export interface IOpenEditorMessage {
+	readonly v: typeof HOST_BRIDGE_VERSION;
+	readonly type: 'openEditor';
+	readonly payload: { readonly route: string; readonly title: string };
+}
+
+/** Asks the workbench to close the editor tab the sending app is shown in. */
+export interface ICloseEditorMessage {
+	readonly v: typeof HOST_BRIDGE_VERSION;
+	readonly type: 'closeEditor';
+	readonly payload: Record<string, never>;
+}
+
+export type HostBridgeInboundMessage = IReadyMessage | IOpenEditorMessage | ICloseEditorMessage;
 
 /** Messages sent by the workbench to the embedded app. */
 export interface IThemeMessage {
 	readonly v: typeof HOST_BRIDGE_VERSION;
 	readonly type: 'theme';
 	readonly payload: { readonly kind: HostBridgeThemeKind; readonly variables: Record<string, string> };
+}
+
+/** Tells the embedded app which folders are open in the IDE (absolute local paths). */
+export interface IWorkspaceMessage {
+	readonly v: typeof HOST_BRIDGE_VERSION;
+	readonly type: 'workspace';
+	readonly payload: { readonly folders: readonly string[] };
 }
 
 /**
@@ -39,10 +60,25 @@ export function parseInboundMessage(data: unknown): HostBridgeInboundMessage | u
 	if (v !== HOST_BRIDGE_VERSION || typeof payload !== 'object' || payload === null) {
 		return undefined;
 	}
-	if (type === 'ready' && typeof (payload as { route?: unknown }).route === 'string') {
-		return { v: HOST_BRIDGE_VERSION, type, payload: { route: (payload as { route: string }).route } };
+	const fields = payload as { route?: unknown; title?: unknown };
+	switch (type) {
+		case 'ready':
+			return typeof fields.route === 'string' ? { v: HOST_BRIDGE_VERSION, type, payload: { route: fields.route } } : undefined;
+		case 'openEditor':
+			// Routes are paths inside the embedded app; anything else (absolute or protocol-relative URLs) is rejected.
+			return typeof fields.route === 'string' && isAppRoute(fields.route) && typeof fields.title === 'string'
+				? { v: HOST_BRIDGE_VERSION, type, payload: { route: fields.route, title: fields.title } }
+				: undefined;
+		case 'closeEditor':
+			return { v: HOST_BRIDGE_VERSION, type, payload: {} };
+		default:
+			return undefined;
 	}
-	return undefined;
+}
+
+/** Returns true for a path inside the embedded app, e.g. `/migration/ready`. */
+export function isAppRoute(route: string): boolean {
+	return route.startsWith('/') && !route.startsWith('//') && !route.includes('\\');
 }
 
 /** Returns true if `origin` is the origin of `baseUrl`. */

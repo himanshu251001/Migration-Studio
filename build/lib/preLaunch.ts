@@ -39,9 +39,15 @@ async function getElectron() {
 	}
 }
 
+/**
+ * Makes sure `out` matches the sources on every launch. A missing `out` gets a full compile; an existing one is
+ * cleared and rebuilt from scratch (client only, transpile; `--force` bypasses the incremental cache) so a launch never runs stale output from an earlier build.
+ */
 async function ensureCompiled() {
 	if (!(await exists('out'))) {
 		await runProcess(npm, ['run', 'compile']);
+	} else {
+		await runProcess(npm, ['run', 'build-fast', '--', '--client-only', '--force']);
 	}
 }
 

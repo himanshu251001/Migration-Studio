@@ -1,22 +1,153 @@
 @import "tailwindcss";
+@import "material-symbols/outlined.css" layer(base);
 
-/* Fallback tokens (dark) used until the IDE pushes the active theme. The host overwrites these at runtime. */
+/*
+ * Design tokens.
+ *
+ * Utility names (bg-surface-container, text-on-surface, ...) are Material-style roles. Their values are aliases onto the
+ * `--vscode-*` variables the IDE host pushes over the bridge, so the UI follows the active IDE theme live. The hex values
+ * are dark fallbacks used before the first theme message (or when running outside the IDE).
+ */
 :root {
-	--vscode-foreground: #cccccc;
-	--vscode-editor-background: #1f1f1f;
-	--vscode-sideBar-background: #181818;
-	--vscode-descriptionForeground: #9d9d9d;
-	--vscode-focusBorder: #0078d4;
-	--vscode-panel-border: #2b2b2b;
-	--vscode-font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-	--vscode-font-size: 13px;
+	--ms-bg: var(--vscode-editor-background, #0f141b);
+	--ms-fg: var(--vscode-foreground, #dee2ed);
+	--ms-accent: var(--vscode-button-background, #007acc);
+	--ms-accent-fg: var(--vscode-button-foreground, #ffffff);
+	--ms-link: var(--vscode-textLink-foreground, #9fcaff);
+	--ms-success: var(--vscode-charts-green, #4edea3);
+	--ms-danger: var(--vscode-errorForeground, #ffb4ab);
 }
 
-html, body {
+@theme inline {
+	/* surfaces: a tonal ladder derived from the editor background towards the foreground, valid in light/dark/HC */
+	--color-background: var(--ms-bg);
+	--color-surface: var(--ms-bg);
+	--color-surface-dim: var(--ms-bg);
+	--color-surface-container-lowest: var(--vscode-input-background, #090e15);
+	--color-surface-container-low: color-mix(in srgb, var(--ms-bg) 96%, var(--ms-fg));
+	--color-surface-container: color-mix(in srgb, var(--ms-bg) 93%, var(--ms-fg));
+	--color-surface-container-high: color-mix(in srgb, var(--ms-bg) 89%, var(--ms-fg));
+	--color-surface-container-highest: color-mix(in srgb, var(--ms-bg) 84%, var(--ms-fg));
+	--color-surface-variant: color-mix(in srgb, var(--ms-bg) 84%, var(--ms-fg));
+	--color-surface-bright: color-mix(in srgb, var(--ms-bg) 80%, var(--ms-fg));
+	--color-surface-tint: var(--ms-link);
+	--color-inverse-surface: var(--ms-fg);
+	--color-inverse-on-surface: var(--ms-bg);
+
+	/* text and outlines */
+	--color-on-background: var(--ms-fg);
+	--color-on-surface: var(--ms-fg);
+	--color-on-surface-variant: var(--vscode-descriptionForeground, #c0c7d3);
+	--color-outline: color-mix(in srgb, var(--ms-fg) 60%, var(--ms-bg));
+	--color-outline-variant: var(--vscode-panel-border, #404751);
+
+	/* primary: links / emphasis (primary) and filled buttons (primary-container) */
+	--color-primary: var(--ms-link);
+	--color-primary-fixed: var(--ms-link);
+	--color-primary-fixed-dim: var(--ms-link);
+	--color-on-primary: var(--ms-bg);
+	--color-primary-container: var(--ms-accent);
+	--color-on-primary-container: var(--ms-accent-fg);
+	--color-inverse-primary: var(--ms-accent);
+
+	--color-secondary: var(--vscode-textLink-activeForeground, #7bd0ff);
+	--color-secondary-fixed-dim: var(--vscode-textLink-activeForeground, #7bd0ff);
+	--color-on-secondary: var(--ms-bg);
+	--color-secondary-container: var(--vscode-button-hoverBackground, #00a6e0);
+	--color-on-secondary-container: var(--ms-accent-fg);
+
+	/* tertiary: success */
+	--color-tertiary: var(--ms-success);
+	--color-tertiary-fixed: var(--ms-success);
+	--color-tertiary-fixed-dim: var(--ms-success);
+	--color-on-tertiary: var(--ms-bg);
+	--color-tertiary-container: color-mix(in srgb, var(--ms-success) 60%, var(--ms-bg));
+	--color-on-tertiary-container: var(--ms-bg);
+
+	/* error */
+	--color-error: var(--ms-danger);
+	--color-on-error: var(--ms-bg);
+	--color-error-container: var(--vscode-inputValidation-errorBackground, #93000a);
+	--color-on-error-container: var(--ms-danger);
+
+	--radius-lg: 0.25rem;
+	--radius-xl: 0.5rem;
+
+	--spacing-space-xs: 0.25rem;
+	--spacing-space-sm: 0.5rem;
+	--spacing-space-md: 0.75rem;
+	--spacing-space-lg: 1rem;
+	--spacing-space-xl: 1.5rem;
+	--spacing-gutter: 0.75rem;
+
+	/* the IDE UI font for text, the IDE editor font for labels and code */
+	--font-headline-sm: var(--vscode-font-family, system-ui, sans-serif);
+	--font-headline-md: var(--vscode-font-family, system-ui, sans-serif);
+	--font-headline-lg: var(--vscode-font-family, system-ui, sans-serif);
+	--font-headline-xl: var(--vscode-font-family, system-ui, sans-serif);
+	--font-body-sm: var(--vscode-font-family, system-ui, sans-serif);
+	--font-body-md: var(--vscode-font-family, system-ui, sans-serif);
+	--font-body-lg: var(--vscode-font-family, system-ui, sans-serif);
+	--font-label-sm: var(--vscode-editor-font-family, ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace);
+	--font-label-md: var(--vscode-editor-font-family, ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace);
+	--font-label-lg: var(--vscode-editor-font-family, ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace);
+	--font-code-snippet: var(--vscode-editor-font-family, ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace);
+}
+
+@theme {
+	--text-headline-xl: 28px;
+	--text-headline-xl--line-height: 36px;
+	--text-headline-xl--letter-spacing: -0.02em;
+	--text-headline-xl--font-weight: 600;
+	--text-headline-lg: 22px;
+	--text-headline-lg--line-height: 28px;
+	--text-headline-lg--letter-spacing: -0.015em;
+	--text-headline-lg--font-weight: 600;
+	--text-headline-md: 16px;
+	--text-headline-md--line-height: 24px;
+	--text-headline-md--letter-spacing: -0.01em;
+	--text-headline-md--font-weight: 600;
+	--text-headline-sm: 14px;
+	--text-headline-sm--line-height: 20px;
+	--text-headline-sm--font-weight: 600;
+	--text-body-lg: 15px;
+	--text-body-lg--line-height: 22px;
+	--text-body-md: 13px;
+	--text-body-md--line-height: 18px;
+	--text-body-sm: 12px;
+	--text-body-sm--line-height: 16px;
+	--text-label-lg: 13px;
+	--text-label-lg--line-height: 18px;
+	--text-label-lg--font-weight: 500;
+	--text-label-md: 11px;
+	--text-label-md--line-height: 14px;
+	--text-label-md--letter-spacing: 0.04em;
+	--text-label-md--font-weight: 500;
+	--text-label-sm: 10px;
+	--text-label-sm--line-height: 12px;
+	--text-label-sm--letter-spacing: 0.06em;
+	--text-label-sm--font-weight: 500;
+	--text-code-snippet: 12px;
+	--text-code-snippet--line-height: 18px;
+}
+
+html,
+body {
 	margin: 0;
+	padding: 0;
 	height: 100%;
-	background: var(--vscode-sideBar-background);
-	color: var(--vscode-foreground);
-	font-family: var(--vscode-font-family);
-	font-size: var(--vscode-font-size);
+	background: var(--color-surface);
+	color: var(--color-on-surface);
+	font-family: var(--vscode-font-family, system-ui, sans-serif);
+	font-size: var(--vscode-font-size, 13px);
+	overscroll-behavior: none;
+}
+
+* {
+	scrollbar-width: thin;
+	scrollbar-color: var(--color-surface-container-highest) transparent;
+}
+
+.material-symbols-outlined {
+	font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }

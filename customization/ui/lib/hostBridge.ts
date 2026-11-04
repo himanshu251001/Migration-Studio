@@ -10,18 +10,47 @@ export interface ThemePayload {
 	variables: Record<string, string>;
 }
 
-export type OutboundMessage = { v: 1; type: 'ready'; payload: { route: string } };
-export type InboundMessage = { v: 1; type: 'theme'; payload: ThemePayload };
+export type OutboundMessage =
+	| { v: 1; type: 'ready'; payload: { route: string } }
+	/** Open `route` of this app in an editor tab. */
+	| { v: 1; type: 'openEditor'; payload: { route: string; title: string } }
+	/** Close the editor tab this app is shown in. */
+	| { v: 1; type: 'closeEditor'; payload: Record<string, never> };
+export interface WorkspacePayload {
+	/** Absolute paths of the folders opened in the IDE. */
+	folders: string[];
+}
+
+export type InboundMessage =
+	| { v: 1; type: 'theme'; payload: ThemePayload }
+	| { v: 1; type: 'workspace'; payload: WorkspacePayload };
+
+function isObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null;
+}
 
 export function isInboundMessage(data: unknown): data is InboundMessage {
-	if (typeof data !== 'object' || data === null) {
+	if (!isObject(data) || data.v !== BRIDGE_VERSION || !isObject(data.payload)) {
 		return false;
 	}
-	const message = data as Partial<InboundMessage>;
-	if (message.v !== BRIDGE_VERSION || message.type !== 'theme' || typeof message.payload !== 'object' || message.payload === null) {
-		return false;
+	const payload = data.payload;
+	switch (data.type) {
+		case 'theme':
+			return typeof payload.kind === 'string' && isObject(payload.variables)
+				&& Object.entries(payload.variables).every(([k, v]) => k.startsWith('--vscode-') && typeof v === 'string');
+		case 'workspace':
+			return Array.isArray(payload.folders) && payload.folders.every(f => typeof f === 'string');
+		default:
+			return false;
 	}
-	const { kind, variables } = message.payload as Partial<ThemePayload>;
-	return typeof kind === 'string' && typeof variables === 'object' && variables !== null
-		&& Object.entries(variables).every(([k, v]) => k.startsWith('--vscode-') && typeof v === 'string');
+}
+
+/** True when this app runs inside the IDE (an iframe of the workbench). */
+export function isEmbedded(): boolean {
+	return typeof window !== 'undefined' && window.parent !== window;
+}
+
+/** Sends a message to the IDE host. The host validates our origin; payloads carry no secrets. */
+export function postToHost(message: OutboundMessage): void {
+	window.parent.postMessage(message, '*');
 }

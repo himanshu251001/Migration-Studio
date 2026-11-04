@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { isTrustedOrigin, parseInboundMessage } from '../../common/hostBridgeProtocol.js';
+import { isAppRoute, isTrustedOrigin, parseInboundMessage } from '../../common/hostBridgeProtocol.js';
 
 suite('Customization Host Bridge Protocol', () => {
 
@@ -27,6 +27,26 @@ suite('Customization Host Bridge Protocol', () => {
 				undefined, undefined, undefined, undefined, undefined, undefined
 			]
 		);
+	});
+
+	test('parseInboundMessage editor messages', () => {
+		assert.deepStrictEqual(
+			[
+				parseInboundMessage({ v: 1, type: 'openEditor', payload: { route: '/migration/ready', title: 'Migration Studio' } }),
+				parseInboundMessage({ v: 1, type: 'openEditor', payload: { route: 'http://evil.com', title: 'x' } }),
+				parseInboundMessage({ v: 1, type: 'openEditor', payload: { route: '//evil.com', title: 'x' } }),
+				parseInboundMessage({ v: 1, type: 'openEditor', payload: { route: '/a' } }),
+				parseInboundMessage({ v: 1, type: 'closeEditor', payload: {} }),
+				parseInboundMessage({ v: 1, type: 'closeEditor' }),
+			],
+			[
+				{ v: 1, type: 'openEditor', payload: { route: '/migration/ready', title: 'Migration Studio' } },
+				undefined, undefined, undefined,
+				{ v: 1, type: 'closeEditor', payload: {} },
+				undefined
+			]
+		);
+		assert.deepStrictEqual([isAppRoute('/a/b?x=1'), isAppRoute('a'), isAppRoute('/a\\b')], [true, false, false]);
 	});
 
 	test('isTrustedOrigin', () => {
