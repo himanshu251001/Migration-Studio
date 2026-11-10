@@ -1,7 +1,9 @@
 import type { AnalysisResult, ArtifactRef } from '@/features/migration/analyze';
 import type { ApproachDecision, ApproachResult } from '@/features/migration/approach';
+import type { IndexResult } from '@/features/migration/componentIndex';
 import type { ReviewComment } from '@/features/migration/comments';
 import type { Project, ProjectDraft } from '@/features/migration/types';
+import type { UnitsDecision, UnitsResult } from '@/features/migration/units';
 
 /** Detects and creates migration projects. Replaced by a host/backend implementation later. */
 export interface ProjectService {
@@ -31,6 +33,26 @@ export interface MigrationService {
 	lockApproach(project: Project, decision: ApproachDecision): Promise<void>;
 	/** Forgets a locked strategy, used when the evaluation is re-run. */
 	clearApproachDecision(project: Project): Promise<void>;
+	/** The component index for `project`. */
+	getIndex(project: Project): Promise<IndexResult>;
+	/** Builds the component index, reporting progress from 0 to 1. Rejects with an `AbortError` when `signal` aborts. */
+	runIndex(project: Project, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void>;
+	/** Ids of the capabilities whose deep analysis has been generated. */
+	getAnalyzedCapabilities(project: Project): Promise<readonly string[]>;
+	/** Generates the deep analysis of one capability and records it. */
+	analyzeCapability(project: Project, capabilityId: string): Promise<void>;
+	/** Forgets generated deep analyses, used when the index is rebuilt. */
+	clearAnalyzedCapabilities(project: Project): Promise<void>;
+	/** The migration units for `project`, in the planner's order. */
+	getUnits(project: Project): Promise<UnitsResult>;
+	/** Groups components into units, reporting progress from 0 to 1. Rejects with an `AbortError` when `signal` aborts. */
+	runUnits(project: Project, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void>;
+	/** The reviewer's unit order and lock, if any. */
+	getUnitsDecision(project: Project): Promise<UnitsDecision | undefined>;
+	/** Saves the reviewer's unit order and lock; later steps build on a locked catalog. */
+	saveUnitsDecision(project: Project, decision: UnitsDecision): Promise<void>;
+	/** Forgets the saved order and lock, used when the units are regrouped. */
+	clearUnitsDecision(project: Project): Promise<void>;
 }
 
 /** Writes generated artifacts to disk so the IDE can open and comment on them as ordinary files. */
