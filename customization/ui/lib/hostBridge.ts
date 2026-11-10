@@ -15,7 +15,9 @@ export type OutboundMessage =
 	/** Open `route` of this app in an editor tab. */
 	| { v: 1; type: 'openEditor'; payload: { route: string; title: string } }
 	/** Close the editor tab this app is shown in. */
-	| { v: 1; type: 'closeEditor'; payload: Record<string, never> };
+	| { v: 1; type: 'closeEditor'; payload: Record<string, never> }
+	/** Open a local file in a native editor tab (only honoured inside an opened folder). */
+	| { v: 1; type: 'openFile'; payload: { path: string; line?: number; preview?: boolean } };
 export interface WorkspacePayload {
 	/** Absolute paths of the folders opened in the IDE. */
 	folders: string[];
@@ -23,7 +25,9 @@ export interface WorkspacePayload {
 
 export type InboundMessage =
 	| { v: 1; type: 'theme'; payload: ThemePayload }
-	| { v: 1; type: 'workspace'; payload: WorkspacePayload };
+	| { v: 1; type: 'workspace'; payload: WorkspacePayload }
+	/** Re-run the current step with the pending review comments. */
+	| { v: 1; type: 'rerunWithComments'; payload: Record<string, never> };
 
 function isObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null;
@@ -40,6 +44,8 @@ export function isInboundMessage(data: unknown): data is InboundMessage {
 				&& Object.entries(payload.variables).every(([k, v]) => k.startsWith('--vscode-') && typeof v === 'string');
 		case 'workspace':
 			return Array.isArray(payload.folders) && payload.folders.every(f => typeof f === 'string');
+		case 'rerunWithComments':
+			return true;
 		default:
 			return false;
 	}

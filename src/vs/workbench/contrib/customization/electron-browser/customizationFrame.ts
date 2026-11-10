@@ -16,7 +16,11 @@ import { defaultButtonStyles } from '../../../../platform/theme/browser/defaultS
 import { IColorTheme, IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
-import { HOST_BRIDGE_VERSION, HostBridgeThemeKind, IThemeMessage, IWorkspaceMessage, isTrustedOrigin, parseInboundMessage } from '../common/hostBridgeProtocol.js';
+import { URI } from '../../../../base/common/uri.js';
+import { CommandsRegistry, ICommandService } from '../../../../platform/commands/common/commands.js';
+import { IFilesConfigurationService } from '../../../services/filesConfiguration/common/filesConfigurationService.js';
+import { IEditorService, SIDE_GROUP } from '../../../services/editor/common/editorService.js';
+import { HOST_BRIDGE_VERSION, HostBridgeThemeKind, IRerunWithCommentsMessage, IThemeMessage, IWorkspaceMessage, isTrustedOrigin, parseInboundMessage } from '../common/hostBridgeProtocol.js';
 
 /** If the embedded app does not announce itself within this time after loading, treat it as unavailable. */
 const READY_TIMEOUT = 15_000;
@@ -26,6 +30,15 @@ export interface ICustomizationFrameHandlers {
 	openEditor(route: string, title: string): void;
 	closeEditor(): void;
 }
+
+/** The frames currently showing the app. */
+const liveFrames = new Set<CustomizationFrame>();
+
+CommandsRegistry.registerCommand('migrationStudio.rerunWithComments', () => {
+	for (const frame of liveFrames) {
+		frame.postRerunWithComments();
+	}
+});
 
 /**
  * A sandboxed iframe hosting a route of the Next.js customization layer, including the
@@ -48,10 +61,15 @@ export class CustomizationFrame extends Disposable {
 		private readonly handlers: ICustomizationFrameHandlers,
 		@IThemeService private readonly themeService: IThemeService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
+		@IEditorService private readonly editorService: IEditorService,
+		@ICommandService private readonly commandService: ICommandService,
+		@IFilesConfigurationService private readonly filesConfigurationService: IFilesConfigurationService,
 		@IMainProcessService mainProcessService: IMainProcessService
 	) {
 		super();
 		this.element = dom.append(container, dom.$('.customization-view'));
+		liveFrames.add(this);
+		this._register({ dispose: () => liveFrames.delete(this) });
 		this.server = ProxyChannel.toService<ICustomizationServerService>(mainProcessService.getChannel(CUSTOMIZATION_SERVER_CHANNEL));
 		this._register(this.server.onDidChangeState(state => this.onServerStateChanged(state)));
 	}
@@ -147,10 +165,45 @@ export class CustomizationFrame extends Disposable {
 				case 'closeEditor':
 					this.handlers.closeEditor();
 					break;
+				case 'openFile':
+					this.openFile(message.payload.path, message.payload.line, message.payload.preview);
+					break;
 			}
 		}));
 		store.add(this.themeService.onDidColorThemeChange(theme => this.postTheme(theme)));
 		store.add(this.workspaceContextService.onDidChangeWorkspaceFolders(() => this.postWorkspace()));
+	}
+
+	/** Opens a file requested by the app: a markdown preview, or the read-only file, beside the current tab. Only files inside an opened folder are allowed. */
+	private async openFile(path: string, line: number | undefined, preview: boolean | undefined): Promise<void> {
+		const resource = URI.file(path);
+		// A project's destination is usually a sibling of the opened folder, so generated artifacts
+		// (`<dest>/.migration/artifacts/`) are allowed in addition to files inside an opened folder.
+		const isArtifact = resource.path.includes('/.migration/artifacts/');
+		if (!isArtifact && !this.workspaceContextService.getWorkspaceFolder(resource)) {
+			return;
+		}
+		// Markdown opens as a preview only, beside the Migration tab; comments are added inside the preview.
+		if (preview && resource.path.toLowerCase().endsWith('.md')) {
+			await this.commandService.executeCommand('markdown.showPreviewToSide', resource);
+			return;
+		}
+		// Anything else opens beside and pinned, so the Migration tab is never replaced or closed. Artifacts
+		// are generated, so the file is read-only but can still be commented on.
+		await this.filesConfigurationService.updateReadonly(resource, true);
+		await this.editorService.openEditor({
+			resource,
+			options: { pinned: true, selection: line ? { startLineNumber: line, startColumn: 1 } : undefined }
+		}, SIDE_GROUP);
+	}
+
+	/** Asks the app to re-run the current step with the pending review comments. */
+	postRerunWithComments(): void {
+		if (!this.iframe?.contentWindow || !this.baseUrl) {
+			return;
+		}
+		const message: IRerunWithCommentsMessage = { v: HOST_BRIDGE_VERSION, type: 'rerunWithComments', payload: {} };
+		this.iframe.contentWindow.postMessage(message, new URL(this.baseUrl).origin);
 	}
 
 	/** Tells the app which local folders are open, so it can detect their migration projects. */

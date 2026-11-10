@@ -27,8 +27,8 @@ export const ANALYZE_FIXTURE: AnalysisResult = {
 	metrics: { filesScanned: 1245, components: 86, risks: 18 },
 	blockers: 'Web Forms and System.Web are incompatible with the .NET runtime. Entity Framework 6 needs an upgrade to EF Core 8. Heavy use of HttpModules and synchronous SQL data adapters.',
 	artifacts: [
-		{ id: 'analysis-report', icon: 'data_object', name: 'migration-analysis-report.json', meta: '4.2 MB · AST & dependency graph' },
-		{ id: 'claude-md', icon: 'terminal', name: 'CLAUDE.md', meta: '148 KB · context instructions' }
+		{ id: 'analysis-report', icon: 'data_object', name: 'migration-analysis-report.json', meta: '4.2 MB · AST & dependency graph', path: 'migration-analysis-report.json', content: JSON.stringify({ project: 'Customer Portal', filesScanned: 1245, components: 86, risks: 18, domains: ['E-commerce', 'Catalog', 'Checkout', 'Payments'] }, undefined, '\t') + '\n' },
+		{ id: 'claude-md', icon: 'terminal', name: 'CLAUDE.md', meta: '148 KB · context instructions', path: 'CLAUDE.md', content: '# Customer Portal\n\nLegacy ASP.NET Web Forms (.NET Framework 4.7.2) being migrated to .NET 8 Web API + React 18.\n\n## Context\n\n- Data layer is tightly coupled to System.Data.SqlClient.\n- HttpContext.Current is used in 32 endpoints.\n' }
 	],
 	duration: '2m 14s',
 	errors: 0

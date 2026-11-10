@@ -49,6 +49,23 @@ suite('Customization Host Bridge Protocol', () => {
 		assert.deepStrictEqual([isAppRoute('/a/b?x=1'), isAppRoute('a'), isAppRoute('/a\\b')], [true, false, false]);
 	});
 
+	test('parseInboundMessage openFile', () => {
+		assert.deepStrictEqual(
+			[
+				parseInboundMessage({ v: 1, type: 'openFile', payload: { path: '/p/CLAUDE.md', line: 3, preview: true } }),
+				parseInboundMessage({ v: 1, type: 'openFile', payload: { path: '/p/a.json' } }),
+				parseInboundMessage({ v: 1, type: 'openFile', payload: { path: '' } }),
+				parseInboundMessage({ v: 1, type: 'openFile', payload: { path: '/p/a', line: 0 } }),
+				parseInboundMessage({ v: 1, type: 'openFile', payload: { line: 1 } }),
+			],
+			[
+				{ v: 1, type: 'openFile', payload: { path: '/p/CLAUDE.md', line: 3, preview: true } },
+				{ v: 1, type: 'openFile', payload: { path: '/p/a.json', line: undefined, preview: undefined } },
+				undefined, undefined, undefined
+			]
+		);
+	});
+
 	test('isTrustedOrigin', () => {
 		assert.deepStrictEqual(
 			[

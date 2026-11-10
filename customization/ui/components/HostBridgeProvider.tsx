@@ -5,6 +5,9 @@ import { isEmbedded, isInboundMessage, postToHost, type ThemeKind } from '@/lib/
 import { ThemeContext } from '@/components/useHostTheme';
 import { WorkspaceContext } from '@/components/useWorkspace';
 
+/** Window event fired when the IDE asks to re-run the current step with the pending comments. */
+export const RERUN_WITH_COMMENTS_EVENT = 'migration:rerun-with-comments';
+
 /** Connects to the IDE host: announces `ready` and applies pushed theme variables live. */
 export function HostBridgeProvider({ children }: { children: React.ReactNode }) {
 	const [themeKind, setThemeKind] = useState<ThemeKind | undefined>();
@@ -21,6 +24,10 @@ export function HostBridgeProvider({ children }: { children: React.ReactNode }) 
 			}
 			if (event.data.type === 'workspace') {
 				setFolders(event.data.payload.folders);
+				return;
+			}
+			if (event.data.type === 'rerunWithComments') {
+				window.dispatchEvent(new CustomEvent(RERUN_WITH_COMMENTS_EVENT));
 				return;
 			}
 			const { kind, variables } = event.data.payload;

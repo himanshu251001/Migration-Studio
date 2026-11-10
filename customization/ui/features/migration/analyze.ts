@@ -29,6 +29,10 @@ export interface ArtifactRef {
 	readonly name: string;
 	readonly meta: string;
 	readonly icon: string;
+	/** File name inside the project's artifact folder (`<dest>/.migration/artifacts/`). */
+	readonly path: string;
+	/** Text content written to `path` when the artifact is opened. */
+	readonly content: string;
 }
 
 /** Everything the Analyze step shows. Counts in `metrics` are final values; the running view scales them by progress. */

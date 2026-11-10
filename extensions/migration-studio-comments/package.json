@@ -1,0 +1,101 @@
+{
+  "name": "migration-studio-comments",
+  "displayName": "Migration Studio Artifact Comments",
+  "description": "Line comments on the artifacts Migration Studio generates under .migration/artifacts/.",
+  "version": "1.0.0",
+  "publisher": "vscode",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension",
+  "capabilities": {
+    "virtualWorkspaces": false,
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "migrationStudioComments.createNote",
+        "title": "Add Comment"
+      },
+      {
+        "command": "migrationStudioComments.replyNote",
+        "title": "Reply"
+      },
+      {
+        "command": "migrationStudioComments.deleteNote",
+        "title": "Delete Comment"
+      },
+      {
+        "command": "migrationStudioComments.deleteThread",
+        "title": "Delete Thread"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "migrationStudioComments.createNote",
+          "when": "false"
+        },
+        {
+          "command": "migrationStudioComments.replyNote",
+          "when": "false"
+        },
+        {
+          "command": "migrationStudioComments.deleteNote",
+          "when": "false"
+        },
+        {
+          "command": "migrationStudioComments.deleteThread",
+          "when": "false"
+        }
+      ],
+      "comments/commentThread/title": [
+        {
+          "command": "migrationStudioComments.deleteThread",
+          "group": "navigation",
+          "when": "commentController == migrationStudioArtifacts && !commentThreadIsEmpty"
+        }
+      ],
+      "comments/commentThread/context": [
+        {
+          "command": "migrationStudioComments.createNote",
+          "group": "inline",
+          "when": "commentController == migrationStudioArtifacts && commentThreadIsEmpty"
+        },
+        {
+          "command": "migrationStudioComments.replyNote",
+          "group": "inline",
+          "when": "commentController == migrationStudioArtifacts && !commentThreadIsEmpty"
+        }
+      ],
+      "comments/comment/title": [
+        {
+          "command": "migrationStudioComments.deleteNote",
+          "group": "inline@1",
+          "when": "commentController == migrationStudioArtifacts"
+        }
+      ]
+    },
+    "configurationDefaults": {
+      "comments.openView": "never"
+    },
+    "markdown.markdownItPlugins": true,
+    "markdown.previewScripts": [
+      "./out/preview.js"
+    ],
+    "markdown.previewStyles": [
+      "./media/comments.css"
+    ]
+  },
+  "scripts": {
+    "compile": "gulp compile-extension:migration-studio-comments",
+    "watch": "gulp watch-extension:migration-studio-comments"
+  }
+}

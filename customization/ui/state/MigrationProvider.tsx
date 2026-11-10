@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react';
+import type { ReviewComment } from '@/features/migration/comments';
 import { screenIndex, type ScreenKey } from '@/features/migration/steps';
 import type { Project } from '@/features/migration/types';
 import { useNavigate } from './useNavigate';
@@ -61,6 +62,10 @@ interface MigrationContextValue extends State {
 	go(key: ScreenKey): void;
 	/** Leaves the studio and clears progress. */
 	exit(): void;
+	/** Reviewer comments the next run of the analyze step is re-run with. Empty for a plain run. */
+	analyzeRerunComments: readonly ReviewComment[];
+	/** Sets the comments for the next analyze run (pass `[]` to clear). */
+	setAnalyzeRerunComments(comments: readonly ReviewComment[]): void;
 }
 
 const MigrationContext = createContext<MigrationContextValue | undefined>(undefined);
@@ -69,6 +74,7 @@ const MigrationContext = createContext<MigrationContextValue | undefined>(undefi
 export function MigrationProvider({ children }: { children: React.ReactNode }) {
 	const navigate = useNavigate();
 	const [state, dispatch] = useReducer(reducer, { hydrated: false, project: undefined, reached: 0 });
+	const [analyzeRerunComments, setAnalyzeRerunComments] = useState<readonly ReviewComment[]>([]);
 
 	useEffect(() => dispatch({ type: 'hydrate', state: load() }), []);
 
@@ -111,7 +117,7 @@ export function MigrationProvider({ children }: { children: React.ReactNode }) {
 		navigate.closeStudio();
 	}, [clear, navigate]);
 
-	const value = useMemo(() => ({ ...state, go, selectProject, openProject, clear, exit }), [state, go, selectProject, openProject, clear, exit]);
+	const value = useMemo(() => ({ ...state, go, selectProject, openProject, clear, exit, analyzeRerunComments, setAnalyzeRerunComments }), [state, go, selectProject, openProject, clear, exit, analyzeRerunComments]);
 	return <MigrationContext.Provider value={value}>{children}</MigrationContext.Provider>;
 }
 

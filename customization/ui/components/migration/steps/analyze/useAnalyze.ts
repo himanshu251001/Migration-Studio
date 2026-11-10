@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { AnalysisResult } from '@/features/migration/analyze';
 import type { Project } from '@/features/migration/types';
 import { useServices } from '@/services/ServiceProvider';
+import { useMigration } from '@/state/MigrationProvider';
 
 export interface AnalyzeState {
 	readonly analysis: AnalysisResult | undefined;
@@ -19,6 +20,10 @@ export interface AnalyzeState {
  */
 export function useAnalyze(project: Project, running: boolean): AnalyzeState {
 	const { migration } = useServices();
+	const { analyzeRerunComments } = useMigration();
+	// Read through a ref: clearing the comments once the run finishes must not restart the run.
+	const commentsRef = useRef(analyzeRerunComments);
+	commentsRef.current = analyzeRerunComments;
 	const [analysis, setAnalysis] = useState<AnalysisResult>();
 	const [progress, setProgress] = useState(running ? 0 : 1);
 	const [error, setError] = useState<string>();
@@ -33,7 +38,7 @@ export function useAnalyze(project: Project, running: boolean): AnalyzeState {
 				}
 				setAnalysis(result);
 				if (running) {
-					await migration.runAnalysis(project, setProgress, controller.signal);
+					await migration.runAnalysis(project, setProgress, controller.signal, commentsRef.current);
 					setProgress(1);
 				}
 			} catch (e) {

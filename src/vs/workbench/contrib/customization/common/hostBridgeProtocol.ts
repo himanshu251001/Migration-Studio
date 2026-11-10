@@ -32,7 +32,17 @@ export interface ICloseEditorMessage {
 	readonly payload: Record<string, never>;
 }
 
-export type HostBridgeInboundMessage = IReadyMessage | IOpenEditorMessage | ICloseEditorMessage;
+/**
+ * Asks the workbench to open a local file (for example a generated artifact) in a native editor, optionally at
+ * `line` (1-based) and with a side preview. The workbench only honours paths inside an opened folder.
+ */
+export interface IOpenFileMessage {
+	readonly v: typeof HOST_BRIDGE_VERSION;
+	readonly type: 'openFile';
+	readonly payload: { readonly path: string; readonly line?: number; readonly preview?: boolean };
+}
+
+export type HostBridgeInboundMessage = IReadyMessage | IOpenEditorMessage | ICloseEditorMessage | IOpenFileMessage;
 
 /** Messages sent by the workbench to the embedded app. */
 export interface IThemeMessage {
@@ -48,6 +58,13 @@ export interface IWorkspaceMessage {
 	readonly payload: { readonly folders: readonly string[] };
 }
 
+/** Tells the embedded app to re-run the current step with the reviewer's pending comments. */
+export interface IRerunWithCommentsMessage {
+	readonly v: typeof HOST_BRIDGE_VERSION;
+	readonly type: 'rerunWithComments';
+	readonly payload: Record<string, never>;
+}
+
 /**
  * Validates untrusted data received from the embedded app. Returns `undefined` for anything that is not a
  * known message of the current protocol version.
@@ -60,7 +77,7 @@ export function parseInboundMessage(data: unknown): HostBridgeInboundMessage | u
 	if (v !== HOST_BRIDGE_VERSION || typeof payload !== 'object' || payload === null) {
 		return undefined;
 	}
-	const fields = payload as { route?: unknown; title?: unknown };
+	const fields = payload as { route?: unknown; title?: unknown; path?: unknown; line?: unknown; preview?: unknown };
 	switch (type) {
 		case 'ready':
 			return typeof fields.route === 'string' ? { v: HOST_BRIDGE_VERSION, type, payload: { route: fields.route } } : undefined;
@@ -71,6 +88,13 @@ export function parseInboundMessage(data: unknown): HostBridgeInboundMessage | u
 				: undefined;
 		case 'closeEditor':
 			return { v: HOST_BRIDGE_VERSION, type, payload: {} };
+		case 'openFile':
+			if (typeof fields.path !== 'string' || !fields.path || fields.path.includes('\0')
+				|| (fields.line !== undefined && (typeof fields.line !== 'number' || !Number.isInteger(fields.line) || fields.line < 1))
+				|| (fields.preview !== undefined && typeof fields.preview !== 'boolean')) {
+				return undefined;
+			}
+			return { v: HOST_BRIDGE_VERSION, type, payload: { path: fields.path, line: fields.line, preview: fields.preview } };
 		default:
 			return undefined;
 	}
