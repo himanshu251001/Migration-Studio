@@ -13,7 +13,7 @@ export const STEP_DEFS = [
 ] as const;
 
 export type StepSlug = (typeof STEP_DEFS)[number]['slug'];
-export type ScreenKey = 'ready' | StepSlug | `${StepSlug}-done`;
+export type ScreenKey = 'ready' | StepSlug | `${StepSlug}-done` | 'summary';
 export type ScreenKind = 'ready' | 'running' | 'done';
 
 export interface ScreenDef {
@@ -29,7 +29,9 @@ export const SCREENS: readonly ScreenDef[] = [
 	...STEP_DEFS.flatMap((s, step): ScreenDef[] => [
 		{ key: s.slug, kind: 'running', step },
 		{ key: `${s.slug}-done`, kind: 'done', step }
-	])
+	]),
+	/** The plan summary after the last step. It belongs to the last step, which stays done. */
+	{ key: 'summary', kind: 'done', step: STEP_DEFS.length - 1 }
 ];
 
 export function screenIndex(key: string): number {

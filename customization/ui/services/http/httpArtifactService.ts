@@ -18,6 +18,19 @@ export class HttpArtifactService implements ArtifactService {
 		return data.path;
 	}
 
+	async exportPlan(dest: string, file: string, content: string): Promise<string> {
+		const response = await fetch('/api/plan/export', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ dest, file, content })
+		});
+		const data = await response.json().catch(() => ({})) as { path?: string; error?: string };
+		if (!response.ok || !data.path) {
+			throw new Error(data.error ?? `Request failed (${response.status}).`);
+		}
+		return data.path;
+	}
+
 	async getComments(project: Project): Promise<readonly ReviewComment[]> {
 		const response = await fetch(`/api/artifacts/comments?dest=${encodeURIComponent(project.dest)}`, { cache: 'no-store' });
 		const data = await response.json().catch(() => ({})) as { comments?: ReviewComment[]; error?: string };

@@ -5,6 +5,7 @@ import { Badge, Button, Icon, Panel } from '@/components/ui';
 import { nextScreen, screenDef, STEP_DEFS, type ScreenKey } from '@/features/migration/steps';
 import type { Project } from '@/features/migration/types';
 import { useMigration } from '@/state/MigrationProvider';
+import { PlanSummary } from './PlanSummary';
 import { STEP_VIEWS } from './steps';
 import { StepHeader } from './steps/StepHeader';
 import { StepActionsSlotContext } from './steps/StepNav';
@@ -26,7 +27,8 @@ export function PhaseScreen({ screen, project }: { screen: Exclude<ScreenKey, 'r
 	const next = nextScreen(screen);
 	const done = def.kind === 'done';
 	const nextStep = done ? STEP_DEFS[def.step + 1] : undefined;
-	const StepView = STEP_VIEWS[step.slug];
+	const summary = screen === 'summary';
+	const StepView = summary ? undefined : STEP_VIEWS[step.slug];
 	// A built running screen advances by itself when its work finishes.
 	const autoAdvances = !!StepView && !done;
 
@@ -35,21 +37,23 @@ export function PhaseScreen({ screen, project }: { screen: Exclude<ScreenKey, 'r
 			<div className="flex flex-col w-full p-space-lg space-y-space-lg text-on-surface">
 				<ScreenHeader
 					title={project.name}
-					badges={<Badge className={done ? 'bg-tertiary/15 text-tertiary' : 'bg-secondary-container/20 text-secondary'}>{done ? `${step.label} complete` : 'In progress'}</Badge>}
-					trail={[`${project.name} Workspace`, 'Migration', step.label]}
+					badges={<Badge className={done ? 'bg-tertiary/15 text-tertiary' : 'bg-secondary-container/20 text-secondary'}>{summary ? 'Plan complete' : done ? `${step.label} complete` : 'In progress'}</Badge>}
+					trail={[`${project.name} Workspace`, 'Migration', summary ? 'Plan Summary' : step.label]}
 					actions={<>
 						<Button icon="forum" className="px-6! py-3!" onClick={() => setAskOpen(true)}>Ask Mode</Button>
 						<div ref={setSlot} className="contents" />
 						{next && !autoAdvances && (
 							<Button variant="primary" className="px-6! py-3!" onClick={() => go(next)} disabled={!canContinue}>
-								{nextStep ? `Proceed to Step ${def.step + 2}: ${nextStep.label}` : 'Continue'}
+								{nextStep ? `Proceed to Step ${def.step + 2}: ${nextStep.label}` : 'View Plan Summary'}
 								<Icon name="arrow_forward" className="text-[16px]" />
 							</Button>
 						)}
 					</>}
 				/>
 				<StepperNav screen={screen} />
-				{StepView
+				{summary
+					? <PlanSummary project={project} />
+					: StepView
 					? <StepView project={project} kind={done ? 'done' : 'running'} onGate={setCanContinue} />
 					: (
 						<>
