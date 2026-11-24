@@ -45,6 +45,11 @@ export function useApproach(project: Project, running: boolean): ApproachState {
 				setReady(true);
 				if (running) {
 					await migration.runApproach(project, setProgress, controller.signal);
+					// The real backend only has the evaluation once the run is over; the mock returns the same result.
+					const finished = await migration.getApproach(project);
+					if (!controller.signal.aborted) {
+						setApproach(finished);
+					}
 					setProgress(1);
 				}
 			} catch (e) {

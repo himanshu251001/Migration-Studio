@@ -69,7 +69,7 @@ export class CustomizationViewPane extends ViewPane {
 	private ensureLoaded(): void {
 		if (!this.frame.value && this.frameContainer) {
 			this.frame.value = this.instantiationService.createInstance(CustomizationFrame, this.frameContainer, this.feature.title.value, this.feature.route, {
-				openEditor: (route, title) => this.editorService.openEditor(this.instantiationService.createInstance(CustomizationEditorInput, route, title)),
+				openEditor: (route, title) => this.editorService.openEditor(this.instantiationService.createInstance(CustomizationEditorInput, route, title), { pinned: true }),
 				closeEditor: () => { /* the sidebar view cannot be closed by the app */ }
 			});
 			this.frame.value.load();

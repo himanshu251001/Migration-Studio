@@ -33,7 +33,7 @@ function Failed({ message }: { message: string }) {
 export function AnalyzeStep({ project, kind }: StepViewProps) {
 	const running = kind === 'running';
 	const { go, analyzeRerunComments, setAnalyzeRerunComments } = useMigration();
-	const { analysis, progress, complete, error } = useAnalyze(project, running);
+	const { analysis, progress, complete, error, live, logs } = useAnalyze(project, running);
 
 	// The running screen opens its done screen by itself once the run has finished.
 	useEffect(() => {
@@ -58,12 +58,13 @@ export function AnalyzeStep({ project, kind }: StepViewProps) {
 		return <Loading />;
 	}
 	return running
-		? <Running analysis={analysis} progress={progress} complete={complete} comments={analyzeRerunComments} onStop={() => { setAnalyzeRerunComments([]); go('ready'); }} />
+		? <Running analysis={analysis} progress={progress} live={live} logs={logs} complete={complete} comments={analyzeRerunComments} onStop={() => { setAnalyzeRerunComments([]); go('ready'); }} />
 		: <Done analysis={analysis} project={project} onRerun={() => { setAnalyzeRerunComments([]); go('analyze'); }} />;
 }
 
-function Running({ analysis, progress, complete, comments, onStop }: { analysis: AnalysisResult; progress: number; complete: boolean; comments: readonly ReviewComment[]; onStop: () => void }) {
+function Running({ analysis, progress, live, logs, complete, comments, onStop }: { analysis: AnalysisResult; progress: number; live: boolean; logs: readonly string[]; complete: boolean; comments: readonly ReviewComment[]; onStop: () => void }) {
 	const shownLogs = complete ? analysis.logs.length : Math.max(1, Math.ceil(progress * analysis.logs.length));
+	const lines = live ? logs : analysis.logs.slice(0, shownLogs);
 	return (
 		<>
 			<StepHeader
@@ -82,10 +83,10 @@ function Running({ analysis, progress, complete, comments, onStop }: { analysis:
 					{comments.length > 0 && <CommentList icon="rate_review" title="Applying Your Comments" comments={comments} />}
 				</div>
 				<div className="lg:col-span-7 space-y-space-lg">
-					<DiscoveryPanel analysis={analysis} progress={progress} live />
+					<DiscoveryPanel analysis={analysis} progress={complete ? 1 : progress} live />
 					<Panel icon="terminal" iconClass="text-secondary" title="Analysis Log">
 						<ul className="bg-surface-container-lowest rounded-lg p-space-sm space-y-1 font-code-snippet text-label-sm text-on-surface-variant overflow-x-auto">
-							{analysis.logs.slice(0, shownLogs).map(l => <li key={l} className="whitespace-nowrap">{l}</li>)}
+							{lines.map((l, i) => <li key={`${i}-${l}`} className="whitespace-nowrap">{l}</li>)}
 						</ul>
 					</Panel>
 				</div>

@@ -14,6 +14,7 @@ import { ITelemetryService } from '../../../../platform/telemetry/common/telemet
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { EditorPane } from '../../../browser/parts/editor/editorPane.js';
 import { IEditorOpenContext } from '../../../common/editor.js';
+import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { IEditorGroup } from '../../../services/editor/common/editorGroupsService.js';
 import { CustomizationEditorInput } from './customizationEditorInput.js';
 import { CustomizationFrame } from './customizationFrame.js';
@@ -31,7 +32,8 @@ export class CustomizationEditor extends EditorPane {
 		@ITelemetryService telemetryService: ITelemetryService,
 		@IThemeService themeService: IThemeService,
 		@IStorageService storageService: IStorageService,
-		@IInstantiationService private readonly instantiationService: IInstantiationService
+		@IInstantiationService private readonly instantiationService: IInstantiationService,
+		@IEditorService private readonly editorService: IEditorService
 	) {
 		super(CustomizationEditor.ID, group, telemetryService, themeService, storageService);
 	}
@@ -54,7 +56,7 @@ export class CustomizationEditor extends EditorPane {
 			input.getName(),
 			input.route,
 			{
-				openEditor: () => { /* the editor tab is already open */ },
+				openEditor: (route, title) => this.editorService.openEditor(this.instantiationService.createInstance(CustomizationEditorInput, route, title), { pinned: true }, this.group),
 				closeEditor: () => this.group.closeEditor(input)
 			}
 		));

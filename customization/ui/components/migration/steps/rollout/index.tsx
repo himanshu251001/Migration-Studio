@@ -80,7 +80,7 @@ function Running({ rollout, progress, complete, onStop }: { rollout: RolloutResu
 					</Panel>
 					<Panel icon="terminal" iconClass="text-secondary" title="Planner Log">
 						<ul className="bg-surface-container-lowest rounded-lg p-space-sm space-y-1 font-code-snippet text-label-sm text-on-surface-variant overflow-x-auto">
-							{rollout.logs.slice(0, shownLogs).map(l => <li key={l} className="whitespace-nowrap">{l}</li>)}
+							{rollout.logs.slice(0, shownLogs).map((l, i) => <li key={`${i}-${l}`} className="whitespace-nowrap">{l}</li>)}
 						</ul>
 					</Panel>
 				</div>

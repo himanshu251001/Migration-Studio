@@ -5,6 +5,7 @@ import { Badge, Button, Icon } from '@/components/ui';
 import type { Project } from '@/features/migration/types';
 import { useServices } from '@/services/ServiceProvider';
 import { useMigration } from '@/state/MigrationProvider';
+import { useNavigate } from '@/state/useNavigate';
 import { ScreenHeader } from './shell/ScreenHeader';
 import { StepperNav } from './shell/StepperNav';
 
@@ -13,6 +14,7 @@ type Stage = 'idle' | 'starting';
 /** Pre-migration screen: shows the project and starts the pipeline. */
 export function ReadyScreen({ project }: { project: Project }) {
 	const { go } = useMigration();
+	const navigate = useNavigate();
 	const { migration } = useServices();
 	const [stage, setStage] = useState<Stage>('idle');
 
@@ -32,7 +34,7 @@ export function ReadyScreen({ project }: { project: Project }) {
 						<Badge className="bg-surface-container text-secondary">Zero running jobs</Badge>
 					</>}
 					actions={<>
-						<Button icon="tune" className="px-6! py-3! ">Configure Settings</Button>
+						<Button icon="tune" className="px-6! py-3! " onClick={navigate.settings}>Configure Settings</Button>
 						<Button variant="primary" onClick={start} disabled={stage === 'starting'} icon={stage === 'idle' ? 'play_arrow' : 'refresh'} className="px-6! py-3! ">
 							{stage === 'idle' ? 'Start Migration' : 'Initializing AST Scan...'}
 						</Button>

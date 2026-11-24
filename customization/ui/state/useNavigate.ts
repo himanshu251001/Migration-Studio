@@ -9,7 +9,7 @@ const STUDIO_TITLE = 'Migration Studio';
 
 /** Routes that render in the wide studio (editor tab) rather than the narrow sidebar launcher. */
 function isStudioRoute(pathname: string): boolean {
-	return pathname === '/studio' || pathname.startsWith('/migration');
+	return pathname === '/studio' || pathname === '/settings' || pathname.startsWith('/migration');
 }
 
 /**
@@ -34,6 +34,14 @@ export function useNavigate() {
 			/** The studio entry: detects projects and shows the matching view (select, create or the project). */
 			studio: () => open('/studio'),
 			screen: (key: ScreenKey) => open(`/migration/${key}`),
+			/** The Settings page. Inside the IDE it always opens as its own editor tab, even from within the studio; in a plain browser it opens in a new tab. */
+			settings: () => {
+				if (isEmbedded()) {
+					postToHost({ v: 1, type: 'openEditor', payload: { route: '/settings', title: 'Settings' } });
+				} else {
+					window.open('/settings', '_blank', 'noopener');
+				}
+			},
 			/** Leaves the studio: closes its editor tab inside the IDE, otherwise returns to the launcher. */
 			closeStudio: () => {
 				if (isEmbedded() && inStudio) {

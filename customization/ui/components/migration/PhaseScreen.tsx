@@ -5,6 +5,7 @@ import { Badge, Button, Icon, Panel } from '@/components/ui';
 import { nextScreen, screenDef, STEP_DEFS, type ScreenKey } from '@/features/migration/steps';
 import type { Project } from '@/features/migration/types';
 import { useMigration } from '@/state/MigrationProvider';
+import { useNavigate } from '@/state/useNavigate';
 import { PlanSummary } from './PlanSummary';
 import { STEP_VIEWS } from './steps';
 import { StepHeader } from './steps/StepHeader';
@@ -19,6 +20,7 @@ import { StepperNav } from './shell/StepperNav';
  */
 export function PhaseScreen({ screen, project }: { screen: Exclude<ScreenKey, 'ready'>; project: Project }) {
 	const { go } = useMigration();
+	const navigate = useNavigate();
 	const [slot, setSlot] = useState<HTMLElement | null>(null);
 	const [askOpen, setAskOpen] = useState(false);
 	const [canContinue, setCanContinue] = useState(true);
@@ -40,6 +42,7 @@ export function PhaseScreen({ screen, project }: { screen: Exclude<ScreenKey, 'r
 					badges={<Badge className={done ? 'bg-tertiary/15 text-tertiary' : 'bg-secondary-container/20 text-secondary'}>{summary ? 'Plan complete' : done ? `${step.label} complete` : 'In progress'}</Badge>}
 					trail={[`${project.name} Workspace`, 'Migration', summary ? 'Plan Summary' : step.label]}
 					actions={<>
+						<Button icon="tune" className="px-6! py-3!" onClick={navigate.settings} title="Settings">Settings</Button>
 						<Button icon="forum" className="px-6! py-3!" onClick={() => setAskOpen(true)}>Ask Mode</Button>
 						<div ref={setSlot} className="contents" />
 						{next && !autoAdvances && (

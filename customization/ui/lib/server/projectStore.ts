@@ -77,6 +77,15 @@ export async function detectProjects(folders: readonly string[]): Promise<Projec
 	return [...new Map(found.map(p => [p.id, p])).values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** Looks a project up by its `Project.id` (the opened folder, plus `#<key>` for further projects in it). */
+export async function findProject(id: string): Promise<Project | undefined> {
+	const folder = id.split('#')[0];
+	if (!path.isAbsolute(folder)) {
+		return undefined;
+	}
+	return (await readProjects(folder)).find(p => p.id === id);
+}
+
 /** Creates the project for `folder` (an opened folder), stored in this app's data directory. */
 export async function createProject(folder: string, draft: ProjectDraft): Promise<Project> {
 	const name = draft.name.trim();

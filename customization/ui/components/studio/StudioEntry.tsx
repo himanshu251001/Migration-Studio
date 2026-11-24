@@ -18,7 +18,7 @@ import { Welcome } from './Welcome';
  */
 export function StudioEntry() {
 	const detection = useDetectedProjects();
-	const { hydrated, project, reached, selectProject, openProject } = useMigration();
+	const { hydrated, project, reached, selectProject, openProject, resumeScreen } = useMigration();
 	const navigate = useNavigate();
 	const [creating, setCreating] = useState(false);
 
@@ -41,7 +41,7 @@ export function StudioEntry() {
 			navigate.screen(SCREENS[reached]?.key ?? 'ready'); // resume where the user left off
 		} else if (single) {
 			selectProject(single);
-			navigate.screen('ready');
+			navigate.screen(resumeScreen(single));
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ready]);

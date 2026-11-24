@@ -81,7 +81,7 @@ function Running({ result, state, progress, complete, onStop }: { result: Storie
 					</div>
 					<Panel icon="terminal" iconClass="text-secondary" title="Backlog Log">
 						<ul className="bg-surface-container-lowest rounded-lg p-space-sm space-y-1 font-code-snippet text-label-sm text-on-surface-variant overflow-x-auto">
-							{result.logs.slice(0, shownLogs).map(l => <li key={l} className="whitespace-nowrap">{l}</li>)}
+							{result.logs.slice(0, shownLogs).map((l, i) => <li key={`${i}-${l}`} className="whitespace-nowrap">{l}</li>)}
 						</ul>
 					</Panel>
 				</div>

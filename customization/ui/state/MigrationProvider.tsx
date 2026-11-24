@@ -1,22 +1,28 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { ReviewComment } from '@/features/migration/comments';
-import { screenIndex, type ScreenKey } from '@/features/migration/steps';
+import { SCREENS, screenIndex, type ScreenKey } from '@/features/migration/steps';
 import type { Project } from '@/features/migration/types';
 import { useNavigate } from './useNavigate';
 
-const STORAGE_KEY = 'migration-studio-state-v1';
+const STORAGE_KEY = 'migration-studio-state-v2';
+const LEGACY_STORAGE_KEY = 'migration-studio-state-v1';
 
-interface State {
-	readonly hydrated: boolean;
+type ReachedByProject = Readonly<Record<string, number>>;
+
+interface Persisted {
 	readonly project: Project | undefined;
-	/** Index (into SCREENS) of the furthest screen reached; later steps stay locked in the stepper. */
-	readonly reached: number;
+	/** Per project: index (into SCREENS) of the furthest screen reached; later steps stay locked in the stepper. */
+	readonly reachedByProject: ReachedByProject;
+}
+
+interface State extends Persisted {
+	readonly hydrated: boolean;
 }
 
 type Action =
-	| { type: 'hydrate'; state: Omit<State, 'hydrated'> }
+	| { type: 'hydrate'; state: Persisted }
 	| { type: 'setProject'; project: Project }
 	| { type: 'reach'; index: number }
 	| { type: 'reset' };
@@ -24,34 +30,53 @@ type Action =
 function reducer(state: State, action: Action): State {
 	switch (action.type) {
 		case 'hydrate': return { ...action.state, hydrated: true };
-		case 'setProject': return { ...state, project: action.project, reached: 0 };
-		case 'reach': return { ...state, reached: Math.max(state.reached, action.index) };
-		case 'reset': return { hydrated: true, project: undefined, reached: 0 };
+		case 'setProject': return { ...state, project: action.project };
+		case 'reach': {
+			if (!state.project) {
+				return state;
+			}
+			const id = state.project.id;
+			return { ...state, reachedByProject: { ...state.reachedByProject, [id]: Math.max(state.reachedByProject[id] ?? 0, action.index) } };
+		}
+		// forgets the active project only; each project keeps its own progress
+		case 'reset': return { ...state, hydrated: true, project: undefined };
 	}
 }
 
-function load(): Omit<State, 'hydrated'> {
+function load(): Persisted {
 	try {
-		const raw = sessionStorage.getItem(STORAGE_KEY);
+		const raw = localStorage.getItem(STORAGE_KEY);
 		if (raw) {
-			const parsed = JSON.parse(raw) as Partial<State>;
-			return { project: parsed.project, reached: typeof parsed.reached === 'number' ? parsed.reached : 0 };
+			const parsed = JSON.parse(raw) as Partial<Persisted>;
+			return { project: parsed.project, reachedByProject: parsed.reachedByProject ?? {} };
+		}
+		const legacy = sessionStorage.getItem(LEGACY_STORAGE_KEY);
+		if (legacy) {
+			const parsed = JSON.parse(legacy) as { project?: Project; reached?: number };
+			return {
+				project: parsed.project,
+				reachedByProject: parsed.project && typeof parsed.reached === 'number' ? { [parsed.project.id]: parsed.reached } : {},
+			};
 		}
 	} catch {
 		// storage unavailable or corrupt: start fresh
 	}
-	return { project: undefined, reached: 0 };
+	return { project: undefined, reachedByProject: {} };
 }
 
-function save(state: Omit<State, 'hydrated'>): void {
+function save(state: Persisted): void {
 	try {
-		sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+		localStorage.setItem(STORAGE_KEY, JSON.stringify({ project: state.project, reachedByProject: state.reachedByProject }));
 	} catch {
 		// not persisted
 	}
 }
 
 interface MigrationContextValue extends State {
+	/** Index (into SCREENS) of the furthest screen reached in the active project. */
+	readonly reached: number;
+	/** The screen to resume the given project on: its furthest reached one, `ready` for a new project. */
+	resumeScreen(project: Project): ScreenKey;
 	/** Makes `project` the active one without navigating (e.g. a single detected project). */
 	selectProject(project: Project): void;
 	/** Makes `project` active and opens the studio's first screen. */
@@ -70,17 +95,19 @@ interface MigrationContextValue extends State {
 
 const MigrationContext = createContext<MigrationContextValue | undefined>(undefined);
 
-/** Project and progress state for the migration flow. Persisted to sessionStorage; host-owned state is a later phase. */
+/** Project and progress state for the migration flow. Progress is kept per project in localStorage; host-owned state is a later phase. */
 export function MigrationProvider({ children }: { children: React.ReactNode }) {
 	const navigate = useNavigate();
-	const [state, dispatch] = useReducer(reducer, { hydrated: false, project: undefined, reached: 0 });
+	const [state, dispatch] = useReducer(reducer, { hydrated: false, project: undefined, reachedByProject: {} });
+	const progressRef = useRef<ReachedByProject>({});
+	progressRef.current = state.reachedByProject;
 	const [analyzeRerunComments, setAnalyzeRerunComments] = useState<readonly ReviewComment[]>([]);
 
 	useEffect(() => dispatch({ type: 'hydrate', state: load() }), []);
 
 	useEffect(() => {
 		if (state.hydrated) {
-			save({ project: state.project, reached: state.reached });
+			save({ project: state.project, reachedByProject: state.reachedByProject });
 		}
 	}, [state]);
 
@@ -99,17 +126,19 @@ export function MigrationProvider({ children }: { children: React.ReactNode }) {
 	const selectProject = useCallback((project: Project) => {
 		dispatch({ type: 'setProject', project });
 		// the studio may open in another frame (an IDE editor tab) that hydrates from storage right away
-		save({ project, reached: 0 });
+		save({ project, reachedByProject: progressRef.current });
 	}, []);
+
+	const resumeScreen = useCallback((project: Project): ScreenKey => SCREENS[progressRef.current[project.id] ?? 0]?.key ?? 'ready', []);
 
 	const openProject = useCallback((project: Project) => {
 		selectProject(project);
-		navigate.screen('ready');
-	}, [selectProject, navigate]);
+		navigate.screen(resumeScreen(project));
+	}, [selectProject, resumeScreen, navigate]);
 
 	const clear = useCallback(() => {
 		dispatch({ type: 'reset' });
-		save({ project: undefined, reached: 0 });
+		save({ project: undefined, reachedByProject: progressRef.current });
 	}, []);
 
 	const exit = useCallback(() => {
@@ -117,7 +146,8 @@ export function MigrationProvider({ children }: { children: React.ReactNode }) {
 		navigate.closeStudio();
 	}, [clear, navigate]);
 
-	const value = useMemo(() => ({ ...state, go, selectProject, openProject, clear, exit, analyzeRerunComments, setAnalyzeRerunComments }), [state, go, selectProject, openProject, clear, exit, analyzeRerunComments]);
+	const reached = state.project ? state.reachedByProject[state.project.id] ?? 0 : 0;
+	const value = useMemo(() => ({ ...state, reached, resumeScreen, go, selectProject, openProject, clear, exit, analyzeRerunComments, setAnalyzeRerunComments }), [state, reached, resumeScreen, go, selectProject, openProject, clear, exit, analyzeRerunComments]);
 	return <MigrationContext.Provider value={value}>{children}</MigrationContext.Provider>;
 }
 

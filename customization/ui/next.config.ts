@@ -8,6 +8,7 @@ import path from 'node:path';
 const config: NextConfig = {
 	output: 'standalone',
 	devIndicators: false,
+	experimental: { agentUpgrade: 'security' },
 	turbopack: { root: path.resolve(__dirname) },
 	async headers() {
 		return [{

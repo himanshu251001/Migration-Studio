@@ -29,7 +29,7 @@ export interface MigrationService {
 	/** The analysis findings for `project`. */
 	getAnalysis(project: Project): Promise<AnalysisResult>;
 	/** Runs the analysis, taking the reviewer's `comments` on the previous result into account when re-running, reporting progress from 0 to 1. Rejects with an `AbortError` when `signal` aborts. */
-	runAnalysis(project: Project, onProgress: (progress: number) => void, signal: AbortSignal, comments?: readonly ReviewComment[]): Promise<void>;
+	runAnalysis(project: Project, onProgress: (progress: number) => void, signal: AbortSignal, comments?: readonly ReviewComment[], onLog?: (line: string) => void): Promise<void>;
 	/** The evaluated decomposition strategies for `project`. */
 	getApproach(project: Project): Promise<ApproachResult>;
 	/** Runs the strategy evaluation, reporting progress from 0 to 1. Rejects with an `AbortError` when `signal` aborts. */

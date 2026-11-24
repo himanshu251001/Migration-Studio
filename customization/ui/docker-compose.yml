@@ -1,0 +1,20 @@
+# Local MongoDB for the real (Claude CLI) backend. Start with: docker compose up -d
+# The default URI in Settings (mongodb://127.0.0.1:27017/migration-studio) matches this file.
+services:
+  mongo:
+    image: mongo:7
+    container_name: migration-studio-mongo
+    restart: unless-stopped
+    # Loopback only: the database has no authentication, so it must not be reachable from the network.
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - migration-studio-mongo:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  migration-studio-mongo:

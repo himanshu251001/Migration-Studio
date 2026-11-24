@@ -19,7 +19,7 @@ let autoOpened = false;
  */
 export function Launcher() {
 	const detection = useDetectedProjects();
-	const { hydrated, project, selectProject, clear } = useMigration();
+	const { hydrated, project, selectProject, clear, resumeScreen } = useMigration();
 	const navigate = useNavigate();
 
 	const detected = detection.status === 'done' ? detection.projects : undefined;
@@ -40,7 +40,7 @@ export function Launcher() {
 
 	const open = (active: Project | undefined, count: number) => {
 		if (active) {
-			navigate.screen('ready');
+			navigate.screen(resumeScreen(active));
 		} else {
 			if (count === 0) {
 				requestCreateProject();
@@ -69,6 +69,7 @@ export function Launcher() {
 			<Button variant="primary" className="w-full" icon="open_in_new" onClick={() => open(project, detected.length)}>
 				{project ? 'Open Migration Studio' : detected.length === 0 ? 'Create New Project' : 'Select Project'}
 			</Button>
+			<Button variant="ghost" className="w-full" icon="tune" onClick={navigate.settings}>Settings</Button>
 		</main>
 	);
 }
