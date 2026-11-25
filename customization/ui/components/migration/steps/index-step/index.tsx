@@ -29,7 +29,7 @@ function Failed({ message }: { message: string }) {
 }
 
 /** Step 3: catalogs the components (running screen), then lists capabilities by domain for deep analysis (done screen). */
-export function IndexStep({ project, kind, onGate }: StepViewProps) {
+export function IndexStep({ project, kind, onGate, onStop }: StepViewProps) {
 	const running = kind === 'running';
 	const { go } = useMigration();
 	const state = useIndex(project, running);
@@ -56,7 +56,7 @@ export function IndexStep({ project, kind, onGate }: StepViewProps) {
 		return <Loading />;
 	}
 	return running
-		? <Running index={index} progress={progress} complete={complete} onStop={() => go('ready')} />
+		? <Running index={index} progress={progress} complete={complete} onStop={onStop} />
 		: <Done index={index} state={state} total={total} onRerun={async () => { await state.discard(); go('index'); }} />;
 }
 

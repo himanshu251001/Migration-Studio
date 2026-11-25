@@ -5,4 +5,6 @@ export interface StepViewProps {
 	readonly kind: 'running' | 'done';
 	/** Reports whether the reviewer may continue to the next step. Steps that need sign-off call it with false until done. */
 	readonly onGate: (canContinue: boolean) => void;
+	/** Stops the running step. The screen stays on this step, which unmounts its view (aborting the run) until the reviewer runs it again. */
+	readonly onStop: () => void;
 }

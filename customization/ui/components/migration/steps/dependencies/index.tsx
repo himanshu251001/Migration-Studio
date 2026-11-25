@@ -29,7 +29,7 @@ function Failed({ message }: { message: string }) {
 }
 
 /** Step 5: traces dependencies between units (running screen), then shows the execution waves (done screen). */
-export function DependenciesStep({ project, kind, onGate }: StepViewProps) {
+export function DependenciesStep({ project, kind, onGate, onStop }: StepViewProps) {
 	const running = kind === 'running';
 	const { go } = useMigration();
 	const { dependencies, progress, complete, error } = useDependencies(project, running);
@@ -53,7 +53,7 @@ export function DependenciesStep({ project, kind, onGate }: StepViewProps) {
 		return <Loading />;
 	}
 	return running
-		? <Running result={dependencies} progress={progress} complete={complete} onStop={() => go('ready')} />
+		? <Running result={dependencies} progress={progress} complete={complete} onStop={onStop} />
 		: <Done result={dependencies} project={project} onRerun={() => go('dependencies')} />;
 }
 

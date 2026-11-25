@@ -26,7 +26,7 @@ function Failed({ message }: { message: string }) {
 }
 
 /** Step 9: schedules the migration into milestones (running screen), then lets the reviewer edit and lock the plan (done screen). */
-export function MilestonesStep({ project, kind, onGate }: StepViewProps) {
+export function MilestonesStep({ project, kind, onGate, onStop }: StepViewProps) {
 	const running = kind === 'running';
 	const { go } = useMigration();
 	const state = useMilestones(project, running);
@@ -51,7 +51,7 @@ export function MilestonesStep({ project, kind, onGate }: StepViewProps) {
 		return <Loading />;
 	}
 	return running
-		? <Running result={milestones} progress={progress} complete={complete} onStop={() => go('ready')} />
+		? <Running result={milestones} progress={progress} complete={complete} onStop={onStop} />
 		: <Done result={milestones} state={state} onRerun={async () => { await state.discard(); go('milestones'); }} />;
 }
 

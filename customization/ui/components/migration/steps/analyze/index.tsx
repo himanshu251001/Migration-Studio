@@ -30,7 +30,7 @@ function Failed({ message }: { message: string }) {
 }
 
 /** Step 1: scans the legacy codebase (running screen), then shows what was found (done screen). */
-export function AnalyzeStep({ project, kind }: StepViewProps) {
+export function AnalyzeStep({ project, kind, onStop }: StepViewProps) {
 	const running = kind === 'running';
 	const { go, analyzeRerunComments, setAnalyzeRerunComments } = useMigration();
 	const { analysis, progress, complete, error, live, logs } = useAnalyze(project, running);
@@ -58,7 +58,7 @@ export function AnalyzeStep({ project, kind }: StepViewProps) {
 		return <Loading />;
 	}
 	return running
-		? <Running analysis={analysis} progress={progress} live={live} logs={logs} complete={complete} comments={analyzeRerunComments} onStop={() => { setAnalyzeRerunComments([]); go('ready'); }} />
+		? <Running analysis={analysis} progress={progress} live={live} logs={logs} complete={complete} comments={analyzeRerunComments} onStop={() => { setAnalyzeRerunComments([]); onStop(); }} />
 		: <Done analysis={analysis} project={project} onRerun={() => { setAnalyzeRerunComments([]); go('analyze'); }} />;
 }
 

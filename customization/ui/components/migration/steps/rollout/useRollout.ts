@@ -43,6 +43,12 @@ export function useRollout(project: Project, running: boolean): RolloutState {
 				setReady(true);
 				if (running) {
 					await migration.runRollout(project, setProgress, controller.signal);
+					// The real backend only has the strategy once the run is over; the mock returns the same result.
+					const [finished, fresh] = await Promise.all([migration.getRollout(project), migration.getRolloutDecision(project)]);
+					if (!controller.signal.aborted) {
+						setRollout(finished);
+						setLocked(!!fresh?.locked);
+					}
 					setProgress(1);
 				}
 			} catch (e) {

@@ -68,6 +68,8 @@ export interface MigrationService {
 	getScope(project: Project): Promise<ScopeResult>;
 	/** Drafts the scope, reporting progress from 0 to 1. Rejects with an `AbortError` when `signal` aborts. */
 	runScope(project: Project, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void>;
+	/** Finds the gaps between the legacy code and the stack, database and strategy the reviewer has selected (saved in the scope decision), reporting progress from 0 to 1. Rejects with an `AbortError` when `signal` aborts. */
+	analyzeScopeGaps(project: Project, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void>;
 	/** The reviewer's scope choices, if any. */
 	getScopeDecision(project: Project): Promise<ScopeDecision | undefined>;
 	/** Saves the reviewer's scope choices; later steps build on a locked decision. */

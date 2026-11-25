@@ -26,7 +26,7 @@ function Failed({ message }: { message: string }) {
 }
 
 /** Step 10: writes user stories and tasks for every milestone (running screen), then lets the reviewer browse and regenerate them (done screen). */
-export function StoriesStep({ project, kind, onGate }: StepViewProps) {
+export function StoriesStep({ project, kind, onGate, onStop }: StepViewProps) {
 	const running = kind === 'running';
 	const { go } = useMigration();
 	const state = useStories(project, running);
@@ -51,7 +51,7 @@ export function StoriesStep({ project, kind, onGate }: StepViewProps) {
 		return <Loading />;
 	}
 	return running
-		? <Running result={result} state={state} progress={progress} complete={complete} onStop={() => go('ready')} />
+		? <Running result={result} state={state} progress={progress} complete={complete} onStop={onStop} />
 		: <Done result={result} state={state} onRerun={() => go('stories')} />;
 }
 

@@ -3,6 +3,9 @@ import type { ApproachDecision, ApproachResult } from '@/features/migration/appr
 import type { ReviewComment } from '@/features/migration/comments';
 import type { IndexResult } from '@/features/migration/componentIndex';
 import type { DependenciesResult } from '@/features/migration/dependencies';
+import type { RolloutDecision, RolloutResult } from '@/features/migration/rollout';
+import type { ScopeDecision, ScopeResult } from '@/features/migration/scope';
+import type { TargetDecision, TargetResult } from '@/features/migration/target';
 import type { UnitsDecision, UnitsResult } from '@/features/migration/units';
 import type { Project } from '@/features/migration/types';
 import type { MigrationService } from '../types';
@@ -105,6 +108,73 @@ const implemented: Partial<MigrationService> = {
 
 	async runDependencies(project: Project, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void> {
 		await runStep('/api/migration/dependencies', { projectId: project.id }, onProgress, signal);
+	},
+
+	async getScope(project: Project): Promise<ScopeResult> {
+		return readJson<ScopeResult>(await fetch(url('/api/migration/scope', project)));
+	},
+
+	async runScope(project: Project, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void> {
+		await runStep('/api/migration/scope', { projectId: project.id }, onProgress, signal);
+	},
+
+	async analyzeScopeGaps(project: Project, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void> {
+		await runStep('/api/migration/scope/gaps', { projectId: project.id }, onProgress, signal);
+	},
+
+	async getScopeDecision(project: Project): Promise<ScopeDecision | undefined> {
+		const { decision } = await readJson<{ decision: ScopeDecision | null }>(await fetch(url('/api/migration/scope/decision', project)));
+		return decision ?? undefined;
+	},
+
+	async saveScopeDecision(project: Project, decision: ScopeDecision): Promise<void> {
+		await readJson(await fetch('/api/migration/scope/decision', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId: project.id, decision }) }));
+	},
+
+	async clearScopeDecision(project: Project): Promise<void> {
+		await readJson(await fetch(url('/api/migration/scope/decision', project), { method: 'DELETE' }));
+	},
+
+	async getTarget(project: Project): Promise<TargetResult> {
+		return readJson<TargetResult>(await fetch(url('/api/migration/target', project)));
+	},
+
+	async runTarget(project: Project, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void> {
+		await runStep('/api/migration/target', { projectId: project.id }, onProgress, signal);
+	},
+
+	async getTargetDecision(project: Project): Promise<TargetDecision | undefined> {
+		const { decision } = await readJson<{ decision: TargetDecision | null }>(await fetch(url('/api/migration/target/decision', project)));
+		return decision ?? undefined;
+	},
+
+	async saveTargetDecision(project: Project, decision: TargetDecision): Promise<void> {
+		await readJson(await fetch('/api/migration/target/decision', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId: project.id, decision }) }));
+	},
+
+	async clearTargetDecision(project: Project): Promise<void> {
+		await readJson(await fetch(url('/api/migration/target/decision', project), { method: 'DELETE' }));
+	},
+
+	async getRollout(project: Project): Promise<RolloutResult> {
+		return readJson<RolloutResult>(await fetch(url('/api/migration/rollout', project)));
+	},
+
+	async runRollout(project: Project, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void> {
+		await runStep('/api/migration/rollout', { projectId: project.id }, onProgress, signal);
+	},
+
+	async getRolloutDecision(project: Project): Promise<RolloutDecision | undefined> {
+		const { decision } = await readJson<{ decision: RolloutDecision | null }>(await fetch(url('/api/migration/rollout/decision', project)));
+		return decision ?? undefined;
+	},
+
+	async saveRolloutDecision(project: Project, decision: RolloutDecision): Promise<void> {
+		await readJson(await fetch('/api/migration/rollout/decision', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId: project.id, decision }) }));
+	},
+
+	async clearRolloutDecision(project: Project): Promise<void> {
+		await readJson(await fetch(url('/api/migration/rollout/decision', project), { method: 'DELETE' }));
 	}
 };
 

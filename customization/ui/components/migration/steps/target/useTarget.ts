@@ -56,6 +56,13 @@ export function useTarget(project: Project, running: boolean): TargetState {
 				setReady(true);
 				if (running) {
 					await migration.runTarget(project, setProgress, controller.signal);
+					// The real backend only has the mappings once the run is over; the mock returns the same result.
+					const [finished, fresh] = await Promise.all([migration.getTarget(project), migration.getTargetDecision(project)]);
+					if (!controller.signal.aborted) {
+						const finishedIds = finished.mappings.map(m => m.id);
+						setTarget(finished);
+						setApproved(fresh ? fresh.approved.filter(id => finishedIds.includes(id)) : []);
+					}
 					setProgress(1);
 				}
 			} catch (e) {

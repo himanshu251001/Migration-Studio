@@ -26,7 +26,7 @@ function Failed({ message }: { message: string }) {
 }
 
 /** Step 7: maps source technologies to the target (running screen), then lets the reviewer approve each mapping (done screen). */
-export function TargetStep({ project, kind, onGate }: StepViewProps) {
+export function TargetStep({ project, kind, onGate, onStop }: StepViewProps) {
 	const running = kind === 'running';
 	const { go } = useMigration();
 	const state = useTarget(project, running);
@@ -52,7 +52,7 @@ export function TargetStep({ project, kind, onGate }: StepViewProps) {
 		return <Loading />;
 	}
 	return running
-		? <Running target={target} progress={progress} complete={complete} onStop={() => go('ready')} />
+		? <Running target={target} progress={progress} complete={complete} onStop={onStop} />
 		: <Done target={target} state={state} onRerun={async () => { await state.discard(); go('target'); }} />;
 }
 

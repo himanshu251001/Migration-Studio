@@ -27,7 +27,7 @@ function Failed({ message }: { message: string }) {
 }
 
 /** Step 6: drafts scope, goals and target stack options (running screen), then lets the reviewer choose a stack, resolve gaps and lock it (done screen). */
-export function ScopeStep({ project, kind, onGate }: StepViewProps) {
+export function ScopeStep({ project, kind, onGate, onStop }: StepViewProps) {
 	const running = kind === 'running';
 	const { go } = useMigration();
 	const state = useScope(project, running);
@@ -52,7 +52,7 @@ export function ScopeStep({ project, kind, onGate }: StepViewProps) {
 		return <Loading />;
 	}
 	return running
-		? <Running scope={scope} progress={progress} complete={complete} onStop={() => go('ready')} />
+		? <Running scope={scope} progress={progress} complete={complete} onStop={onStop} />
 		: <Done scope={scope} state={state} onRerun={async () => { await state.discard(); go('scope'); }} />;
 }
 
@@ -101,7 +101,7 @@ function Done({ scope, state, onRerun }: { scope: ScopeResult; state: ScopeState
 	const chosen = custom ? decision.customStack?.trim() : candidate?.name;
 	const stackReady = !!chosen;
 	const resolvedCount = Object.keys(decision.resolutions).length;
-	const gapsDone = resolvedCount === scope.gaps.length;
+	const gapsDone = scope.gapsReady && resolvedCount === scope.gaps.length;
 	const section = modal?.kind === 'section' ? scope.sections.find(s => s.id === modal.id) : undefined;
 	return (
 		<>
@@ -133,13 +133,19 @@ function Done({ scope, state, onRerun }: { scope: ScopeResult; state: ScopeState
 					<p className="text-label-sm font-label-sm text-on-surface-variant">Select a card to view details.</p>
 					<div className="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
 						{!locked && (
-							<Tile
-								title={stackReady ? 'Review Gaps' : 'Analyze Gaps'}
-								summary={stackReady ? `${resolvedCount} / ${scope.gaps.length} resolved` : 'Select a tech stack first.'}
-								attention={stackReady && !gapsDone}
-								disabled={!stackReady}
-								onClick={() => setModal({ kind: 'gap', start: Math.min(resolvedCount, scope.gaps.length - 1) })}
-							/>
+							!stackReady
+								? <Tile title="Analyze Gaps" summary="Select a tech stack first." disabled onClick={() => undefined} />
+								: state.gapsRunning
+								? <Tile title="Analyzing Gaps" summary={`Reading the source against ${chosen}... ${Math.round(state.gapsProgress * 100)}%`} disabled onClick={() => undefined} />
+								: !scope.gapsReady
+								? <Tile title="Analyze Gaps" summary={`Run gap analysis against ${chosen}, ${decision.database} and ${decision.strategy}.`} attention onClick={() => void state.analyzeGaps()} />
+								: <Tile
+									title="Review Gaps"
+									summary={scope.gaps.length === 0 ? 'No gaps found.' : `${resolvedCount} / ${scope.gaps.length} resolved`}
+									attention={!gapsDone}
+									disabled={scope.gaps.length === 0}
+									onClick={() => setModal({ kind: 'gap', start: Math.max(0, Math.min(resolvedCount, scope.gaps.length - 1)) })}
+								/>
 						)}
 						{scope.sections.map(s => <Tile key={s.id} title={s.title} summary={s.summary} onClick={() => setModal({ kind: 'section', id: s.id })} />)}
 					</div>
@@ -236,8 +242,9 @@ function StackPicker({ scope, state, stackReady, gapsDone, onLock }: { scope: Sc
 			</label>
 			<Button variant="primary" disabled={!stackReady || !gapsDone} onClick={onLock}>Lock Target Stack</Button>
 			{!(stackReady && gapsDone) && (
-				<p className="text-label-sm font-label-sm text-on-surface-variant">{stackReady ? 'Resolve all gaps to lock the target stack.' : 'Select a tech stack to continue.'}</p>
+				<p className="text-label-sm font-label-sm text-on-surface-variant">{!stackReady ? 'Select a tech stack to continue.' : !scope.gapsReady ? 'Analyze the gaps for this selection before locking. Changing the stack, database or strategy discards the analysis.' : 'Resolve all gaps to lock the target stack.'}</p>
 			)}
+			{state.actionError && <p role="alert" className="text-label-sm font-label-sm text-error">{state.actionError}</p>}
 		</Panel>
 	);
 }

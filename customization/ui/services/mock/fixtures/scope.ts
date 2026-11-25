@@ -30,6 +30,8 @@ export const SCOPE_FIXTURE: ScopeResult = {
 	],
 	databases: ['Keep existing DB, swap data-access layer', 'Migrate to PostgreSQL', 'Migrate to a managed cloud database'],
 	strategies: ['Incremental / strangler-fig', 'Big-bang cut-over'],
+	// The mock lists the same gaps for any selection.
+	gapsReady: true,
 	gaps: [
 		{
 			id: 'GAP-01', area: 'Authentication & Authorization', title: 'Session token storage must move to httpOnly cookies',

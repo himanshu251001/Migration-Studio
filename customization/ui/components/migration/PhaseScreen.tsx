@@ -24,6 +24,8 @@ export function PhaseScreen({ screen, project }: { screen: Exclude<ScreenKey, 'r
 	const [slot, setSlot] = useState<HTMLElement | null>(null);
 	const [askOpen, setAskOpen] = useState(false);
 	const [canContinue, setCanContinue] = useState(true);
+	const [stopped, setStopped] = useState(false);
+	const [runKey, setRunKey] = useState(0);
 	const def = screenDef(screen);
 	const step = STEP_DEFS[def.step];
 	const next = nextScreen(screen);
@@ -56,8 +58,18 @@ export function PhaseScreen({ screen, project }: { screen: Exclude<ScreenKey, 'r
 				<StepperNav screen={screen} />
 				{summary
 					? <PlanSummary project={project} />
+					: StepView && stopped
+					? (
+						<Panel icon="stop_circle" iconClass="text-error" title={`${step.label} stopped`}>
+							<p className="text-body-md font-body-md text-on-surface-variant">The run was stopped and nothing from it was kept. Run this step again when you are ready.</p>
+							<div className="flex gap-space-sm pt-space-sm">
+								<Button variant="primary" icon="replay" onClick={() => { setStopped(false); setRunKey(key => key + 1); }}>Run Again</Button>
+								{def.step > 0 && <Button icon="arrow_back" onClick={() => go(`${STEP_DEFS[def.step - 1].slug}-done`)}>Back to Step {def.step}</Button>}
+							</div>
+						</Panel>
+					)
 					: StepView
-					? <StepView project={project} kind={done ? 'done' : 'running'} onGate={setCanContinue} />
+					? <StepView key={runKey} project={project} kind={done ? 'done' : 'running'} onGate={setCanContinue} onStop={() => setStopped(true)} />
 					: (
 						<>
 							<StepHeader

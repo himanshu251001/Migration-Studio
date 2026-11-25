@@ -26,7 +26,7 @@ function Failed({ message }: { message: string }) {
 }
 
 /** Step 2: scores decomposition strategies (running screen), then lets the reviewer lock one (done screen). */
-export function ApproachStep({ project, kind, onGate }: StepViewProps) {
+export function ApproachStep({ project, kind, onGate, onStop }: StepViewProps) {
 	const running = kind === 'running';
 	const { go } = useMigration();
 	const state = useApproach(project, running);
@@ -52,7 +52,7 @@ export function ApproachStep({ project, kind, onGate }: StepViewProps) {
 		return <Loading />;
 	}
 	return running
-		? <Running approach={approach} progress={progress} complete={complete} onStop={() => go('ready')} />
+		? <Running approach={approach} progress={progress} complete={complete} onStop={onStop} />
 		: <Done approach={approach} state={state} onRerun={async () => { await state.discard(); go('approach'); }} />;
 }
 

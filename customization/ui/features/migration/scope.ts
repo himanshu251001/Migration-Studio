@@ -60,6 +60,8 @@ export interface ScopeResult {
 	readonly databases: readonly string[];
 	readonly strategies: readonly string[];
 	readonly gaps: readonly ScopeGap[];
+	/** Whether the gaps were analyzed for the current stack, database and strategy. False until the reviewer runs the gap analysis, and again whenever the selection changes. */
+	readonly gapsReady: boolean;
 	readonly sections: readonly ScopeSection[];
 	readonly duration: string;
 }

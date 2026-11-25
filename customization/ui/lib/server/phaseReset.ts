@@ -5,9 +5,12 @@ import { DecompositionStrategyReport } from './models/DecompositionStrategyRepor
 import { MigrationUnit } from './models/MigrationUnit';
 import { MigrationUnitCatalog } from './models/MigrationUnitCatalog';
 import { NO_DEPENDENCY_RESULT } from './models/dependencyFields';
+import { MigrationStrategy } from './models/MigrationStrategy';
 import { Run } from './models/Run';
+import { ScopeCharter } from './models/ScopeCharter';
 import { SharedService } from './models/SharedService';
 import { SubProjectAnalysis } from './models/SubProjectAnalysis';
+import { TargetMapping } from './models/TargetMapping';
 import { removeProjectPath } from './projectWorkspace';
 
 /**
@@ -19,12 +22,41 @@ async function deleteOldRuns(projectId: string, phase: string, currentRunId?: st
 	await Run.deleteMany({ projectId, phase: phases, ...(currentRunId ? { _id: { $ne: currentRunId } } : {}) });
 }
 
-/** Clears the Dependencies phase only: the analysis stored on the units and shared services, old runs and the file. */
+/** Clears the Rollout phase: the strategy and its sign-off, old runs and the file. */
+export async function resetRollout(project: Project, currentRunId?: string): Promise<void> {
+	await MigrationStrategy.deleteOne({ projectId: project.id });
+	await deleteOldRuns(project.id, 'rollout', currentRunId);
+	await removeProjectPath(project.dest, 'migration/migration-strategy.md');
+}
+
+/** Clears the Target phase (mappings and approvals, old runs, the file) and the Rollout built on it. */
+export async function resetTarget(project: Project, currentRunId?: string): Promise<void> {
+	await TargetMapping.deleteOne({ projectId: project.id });
+	await deleteOldRuns(project.id, 'target', currentRunId);
+	await removeProjectPath(project.dest, 'migration/pattern-mapping-library.md');
+	await resetRollout(project, currentRunId);
+}
+
+/** Deletes the stored runs of the gap analysis (except the one starting now). */
+export async function deleteScopeGapRuns(projectId: string, currentRunId?: string): Promise<void> {
+	await deleteOldRuns(projectId, 'scope:gaps', currentRunId);
+}
+
+/** Clears the Scope phase (charter, gaps, choices and lock, old runs, the file) and the Target and Rollout built on it. */
+export async function resetScope(project: Project, currentRunId?: string): Promise<void> {
+	await ScopeCharter.deleteOne({ projectId: project.id });
+	await deleteOldRuns(project.id, 'scope', currentRunId);
+	await removeProjectPath(project.dest, 'migration/modernization-charter.md');
+	await resetTarget(project, currentRunId);
+}
+
+/** Clears the Dependencies phase (the analysis stored on the units and shared services, old runs, the file) and the Scope built on it. */
 export async function resetDependencies(project: Project, currentRunId?: string): Promise<void> {
 	await MigrationUnit.updateMany({ projectId: project.id }, { $set: NO_DEPENDENCY_RESULT });
 	await SharedService.updateMany({ projectId: project.id }, { $set: NO_DEPENDENCY_RESULT });
 	await deleteOldRuns(project.id, 'dependencies', currentRunId);
 	await removeProjectPath(project.dest, 'migration/dependency-analysis.md');
+	await resetScope(project, currentRunId);
 }
 
 /** Clears the Units phase and the Dependencies built on it. */

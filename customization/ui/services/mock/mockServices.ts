@@ -33,6 +33,7 @@ const INDEX_DURATION_MS = 8000;
 const UNITS_DURATION_MS = 8000;
 const DEPENDENCIES_DURATION_MS = 8000;
 const SCOPE_DURATION_MS = 6000;
+const GAP_ANALYSIS_DURATION_MS = 3000;
 const TARGET_DURATION_MS = 8000;
 const ROLLOUT_DURATION_MS = 8000;
 const MILESTONES_DURATION_MS = 7000;
@@ -226,6 +227,10 @@ export class MockMigrationService implements MigrationService {
 
 	runScope(_project: unknown, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void> {
 		return simulateRun(SCOPE_DURATION_MS, onProgress, signal, 'Drafting stopped');
+	}
+
+	analyzeScopeGaps(_project: unknown, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void> {
+		return simulateRun(GAP_ANALYSIS_DURATION_MS, onProgress, signal, 'Gap analysis stopped');
 	}
 
 	async getScopeDecision(project: Project): Promise<ScopeDecision | undefined> {

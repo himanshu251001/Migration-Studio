@@ -29,7 +29,7 @@ function Failed({ message }: { message: string }) {
 }
 
 /** Step 4: groups components into migration units (running screen), then lets the reviewer order and lock them (done screen). */
-export function UnitsStep({ project, kind, onGate }: StepViewProps) {
+export function UnitsStep({ project, kind, onGate, onStop }: StepViewProps) {
 	const running = kind === 'running';
 	const { go } = useMigration();
 	const state = useUnits(project, running);
@@ -54,7 +54,7 @@ export function UnitsStep({ project, kind, onGate }: StepViewProps) {
 		return <Loading />;
 	}
 	return running
-		? <Running units={units} progress={progress} complete={complete} onStop={() => go('ready')} />
+		? <Running units={units} progress={progress} complete={complete} onStop={onStop} />
 		: <Done units={units} state={state} project={project} onRerun={async () => { await state.discard(); go('units'); }} />;
 }
 

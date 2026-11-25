@@ -26,7 +26,7 @@ function Failed({ message }: { message: string }) {
 }
 
 /** Step 8: plans how migrated units reach users (running screen), then lets the reviewer lock the strategy (done screen). */
-export function RolloutStep({ project, kind, onGate }: StepViewProps) {
+export function RolloutStep({ project, kind, onGate, onStop }: StepViewProps) {
 	const running = kind === 'running';
 	const { go } = useMigration();
 	const state = useRollout(project, running);
@@ -51,7 +51,7 @@ export function RolloutStep({ project, kind, onGate }: StepViewProps) {
 		return <Loading />;
 	}
 	return running
-		? <Running rollout={rollout} progress={progress} complete={complete} onStop={() => go('ready')} />
+		? <Running rollout={rollout} progress={progress} complete={complete} onStop={onStop} />
 		: <Done rollout={rollout} state={state} onRerun={async () => { await state.discard(); go('rollout'); }} />;
 }
 
