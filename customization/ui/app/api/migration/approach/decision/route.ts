@@ -2,6 +2,7 @@ import type { ApproachDecision } from '@/features/migration/approach';
 import { strategyOptionId } from '@/lib/server/adapters/approach';
 import { connectDB } from '@/lib/server/db';
 import { DecompositionStrategyReport } from '@/lib/server/models/DecompositionStrategyReport';
+import { resetIndex } from '@/lib/server/phaseReset';
 import { resolveStepProject, runRouteError } from '@/lib/server/stepRoute';
 
 export const dynamic = 'force-dynamic';
@@ -51,17 +52,23 @@ export async function PUT(request: Request): Promise<Response> {
 		} else if (!stored.report.strategyComparison.some(entry => strategyOptionId(entry.strategy) === optionId)) {
 			return Response.json({ error: 'Unknown strategy.' }, { status: 400 });
 		}
+		const lockedCustom = optionId === 'other' ? custom!.trim() : null;
+		// Locking a different strategy than the one the Index was built on makes that Index (and what follows) stale.
+		const changed = stored.lockedOptionId !== optionId || stored.lockedCustom !== lockedCustom;
 		stored.lockedOptionId = optionId;
-		stored.lockedCustom = optionId === 'other' ? custom!.trim() : null;
+		stored.lockedCustom = lockedCustom;
 		stored.lockedAt = new Date();
 		await stored.save();
+		if (changed) {
+			await resetIndex(resolved.project);
+		}
 		return Response.json({ ok: true });
 	} catch (error) {
 		return runRouteError(error);
 	}
 }
 
-/** `?projectId=`. Forgets the lock. Nothing is built on the strategy yet, so there is no downstream data to clear. */
+/** `?projectId=`. Forgets the lock and clears the Index, Units and Dependencies built on it. */
 export async function DELETE(request: Request): Promise<Response> {
 	const resolved = await resolveStepProject(request, new URL(request.url).searchParams.get('projectId'));
 	if ('response' in resolved) {
@@ -70,6 +77,7 @@ export async function DELETE(request: Request): Promise<Response> {
 	try {
 		await connectDB();
 		await DecompositionStrategyReport.updateOne({ projectId: resolved.project.id }, { $set: { lockedOptionId: null, lockedCustom: null, lockedAt: null } });
+		await resetIndex(resolved.project);
 		return Response.json({ ok: true });
 	} catch (error) {
 		return runRouteError(error);

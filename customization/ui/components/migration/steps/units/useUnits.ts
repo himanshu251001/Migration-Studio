@@ -53,6 +53,14 @@ export function useUnits(project: Project, running: boolean): UnitsState {
 				setReady(true);
 				if (running) {
 					await migration.runUnits(project, setProgress, controller.signal);
+					// The real backend only has the units once the run is over; the mock returns the same result.
+					const [finished, fresh] = await Promise.all([migration.getUnits(project), migration.getUnitsDecision(project)]);
+					if (!controller.signal.aborted) {
+						const finishedIds = finished.units.map(u => u.id);
+						setUnits(finished);
+						setOrder(fresh && fresh.order.length === finishedIds.length && finishedIds.every(id => fresh.order.includes(id)) ? fresh.order : finishedIds);
+						setLocked(!!fresh && fresh.locked);
+					}
 					setProgress(1);
 				}
 			} catch (e) {

@@ -48,6 +48,13 @@ export function useIndex(project: Project, running: boolean): IndexState {
 				setReady(true);
 				if (running) {
 					await migration.runIndex(project, setProgress, controller.signal);
+					// The real backend only has the index once the run is over; the mock returns the same result.
+					const finished = await migration.getIndex(project);
+					if (!controller.signal.aborted) {
+						setIndex(finished);
+						// A rebuild drops the deep analyses, so read which ones survive.
+						setAnalyzed(new Set(await migration.getAnalyzedCapabilities(project)));
+					}
 					setProgress(1);
 				}
 			} catch (e) {

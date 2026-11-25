@@ -34,6 +34,11 @@ export function useDependencies(project: Project, running: boolean): Dependencie
 				setDependencies(result);
 				if (running) {
 					await migration.runDependencies(project, setProgress, controller.signal);
+					// The real backend only has the analysis once the run is over; the mock returns the same result.
+					const finished = await migration.getDependencies(project);
+					if (!controller.signal.aborted) {
+						setDependencies(finished);
+					}
 					setProgress(1);
 				}
 			} catch (e) {

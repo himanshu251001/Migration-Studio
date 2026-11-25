@@ -1,6 +1,9 @@
 import type { AnalysisResult } from '@/features/migration/analyze';
 import type { ApproachDecision, ApproachResult } from '@/features/migration/approach';
 import type { ReviewComment } from '@/features/migration/comments';
+import type { IndexResult } from '@/features/migration/componentIndex';
+import type { DependenciesResult } from '@/features/migration/dependencies';
+import type { UnitsDecision, UnitsResult } from '@/features/migration/units';
 import type { Project } from '@/features/migration/types';
 import type { MigrationService } from '../types';
 import { runStep } from './runClient';
@@ -51,6 +54,57 @@ const implemented: Partial<MigrationService> = {
 
 	async clearApproachDecision(project: Project): Promise<void> {
 		await readJson(await fetch(url('/api/migration/approach/decision', project), { method: 'DELETE' }));
+	},
+
+	async getIndex(project: Project): Promise<IndexResult> {
+		return readJson<IndexResult>(await fetch(url('/api/migration/index', project)));
+	},
+
+	async runIndex(project: Project, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void> {
+		await runStep('/api/migration/index', { projectId: project.id }, onProgress, signal);
+	},
+
+	async getAnalyzedCapabilities(project: Project): Promise<readonly string[]> {
+		const { ids } = await readJson<{ ids: string[] }>(await fetch(url('/api/migration/index/analyzed', project)));
+		return ids;
+	},
+
+	async analyzeCapability(project: Project, capabilityId: string): Promise<void> {
+		// The deep analysis has no Stop in the UI; it runs to the end like any other run.
+		await runStep('/api/migration/index/analyze', { projectId: project.id, capabilityId }, () => undefined, undefined);
+	},
+
+	async clearAnalyzedCapabilities(project: Project): Promise<void> {
+		await readJson(await fetch(url('/api/migration/index/analyzed', project), { method: 'DELETE' }));
+	},
+
+	async getUnits(project: Project): Promise<UnitsResult> {
+		return readJson<UnitsResult>(await fetch(url('/api/migration/units', project)));
+	},
+
+	async runUnits(project: Project, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void> {
+		await runStep('/api/migration/units', { projectId: project.id }, onProgress, signal);
+	},
+
+	async getUnitsDecision(project: Project): Promise<UnitsDecision | undefined> {
+		const { decision } = await readJson<{ decision: UnitsDecision | null }>(await fetch(url('/api/migration/units/decision', project)));
+		return decision ?? undefined;
+	},
+
+	async saveUnitsDecision(project: Project, decision: UnitsDecision): Promise<void> {
+		await readJson(await fetch('/api/migration/units/decision', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId: project.id, decision }) }));
+	},
+
+	async clearUnitsDecision(project: Project): Promise<void> {
+		await readJson(await fetch(url('/api/migration/units/decision', project), { method: 'DELETE' }));
+	},
+
+	async getDependencies(project: Project): Promise<DependenciesResult> {
+		return readJson<DependenciesResult>(await fetch(url('/api/migration/dependencies', project)));
+	},
+
+	async runDependencies(project: Project, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void> {
+		await runStep('/api/migration/dependencies', { projectId: project.id }, onProgress, signal);
 	}
 };
 
