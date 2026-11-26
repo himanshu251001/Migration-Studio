@@ -25,6 +25,7 @@ type Action =
 	| { type: 'hydrate'; state: Persisted }
 	| { type: 'setProject'; project: Project }
 	| { type: 'reach'; index: number }
+	| { type: 'rerun'; index: number }
 	| { type: 'reset' };
 
 function reducer(state: State, action: Action): State {
@@ -37,6 +38,13 @@ function reducer(state: State, action: Action): State {
 			}
 			const id = state.project.id;
 			return { ...state, reachedByProject: { ...state.reachedByProject, [id]: Math.max(state.reachedByProject[id] ?? 0, action.index) } };
+		}
+		// Re-running a step invalidates the steps after it (the backend clears them too): progress falls back to that step.
+		case 'rerun': {
+			if (!state.project) {
+				return state;
+			}
+			return { ...state, reachedByProject: { ...state.reachedByProject, [state.project.id]: action.index } };
 		}
 		// forgets the active project only; each project keeps its own progress
 		case 'reset': return { ...state, hydrated: true, project: undefined };
@@ -119,7 +127,9 @@ export function MigrationProvider({ children }: { children: React.ReactNode }) {
 	}, []);
 
 	const go = useCallback((key: ScreenKey) => {
-		dispatch({ type: 'reach', index: screenIndex(key) });
+		const index = screenIndex(key);
+		// A running screen means the step is starting or re-running, so every later step is stale.
+		dispatch(SCREENS[index]?.kind === 'running' ? { type: 'rerun', index } : { type: 'reach', index });
 		navigate.screen(key);
 	}, [navigate]);
 

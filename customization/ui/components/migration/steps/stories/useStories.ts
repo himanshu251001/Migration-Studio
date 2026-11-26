@@ -32,28 +32,38 @@ export function useStories(project: Project, running: boolean): StoriesState {
 	const [error, setError] = useState<string>();
 	const controller = useRef<AbortController | undefined>(undefined);
 
+	/** Reads the stories and the milestones they belong to; `false` when the screen went away meanwhile. */
+	const load = useCallback(async (signal: AbortSignal): Promise<boolean> => {
+		const [stories, milestones, decision] = await Promise.all([
+			migration.getStories(project),
+			migration.getMilestones(project),
+			migration.getMilestonesDecision(project)
+		]);
+		if (signal.aborted) {
+			return false;
+		}
+		setResult(stories);
+		setPlan(milestones.milestones.map(m => ({
+			...m,
+			name: decision?.names[m.id] ?? m.name,
+			stories: stories.stories.filter(s => s.milestoneId === m.id)
+		})));
+		return true;
+	}, [migration, project]);
+
 	useEffect(() => {
 		const abort = new AbortController();
 		controller.current = abort;
 		(async () => {
 			try {
-				const [stories, milestones, decision] = await Promise.all([
-					migration.getStories(project),
-					migration.getMilestones(project),
-					migration.getMilestonesDecision(project)
-				]);
-				if (abort.signal.aborted) {
+				if (!await load(abort.signal)) {
 					return;
 				}
-				setResult(stories);
-				setPlan(milestones.milestones.map(m => ({
-					...m,
-					name: decision?.names[m.id] ?? m.name,
-					stories: stories.stories.filter(s => s.milestoneId === m.id)
-				})));
 				setReady(true);
 				if (running) {
 					await migration.runStories(project, setProgress, abort.signal);
+					// The real backend only has the stories once the run is over; the mock returns the same result.
+					await load(abort.signal);
 					setProgress(1);
 				}
 			} catch (e) {
@@ -64,7 +74,7 @@ export function useStories(project: Project, running: boolean): StoriesState {
 		})();
 		// Aborts the run (Stop) and any generation in flight when the screen goes away.
 		return () => abort.abort();
-	}, [migration, project, running]);
+	}, [migration, project, running, load]);
 
 	const regenerate = useCallback((milestoneId: string, storyId?: string) => {
 		const key = storyId ?? milestoneId;
@@ -74,12 +84,10 @@ export function useStories(project: Project, running: boolean): StoriesState {
 		}
 		setBusy(b => [...b, key]);
 		migration.regenerateStories(project, milestoneId, storyId, signal).then(
-			() => setBusy(b => b.filter(k => k !== key)),
-			() => {
-				// Aborted with the screen: nothing left to update.
-			}
-		);
-	}, [migration, project, busy]);
+			() => load(signal),
+			() => false
+		).finally(() => setBusy(b => b.filter(k => k !== key)));
+	}, [migration, project, busy, load]);
 
 	return { result, plan, progress, complete: !!result && progress >= 1, busy, ready, error, regenerate };
 }

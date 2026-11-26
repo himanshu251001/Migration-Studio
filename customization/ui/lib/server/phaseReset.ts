@@ -6,11 +6,14 @@ import { MigrationUnit } from './models/MigrationUnit';
 import { MigrationUnitCatalog } from './models/MigrationUnitCatalog';
 import { NO_DEPENDENCY_RESULT } from './models/dependencyFields';
 import { MigrationStrategy } from './models/MigrationStrategy';
+import { Milestone } from './models/Milestone';
 import { Run } from './models/Run';
 import { ScopeCharter } from './models/ScopeCharter';
 import { SharedService } from './models/SharedService';
+import { StoryPlan } from './models/StoryPlan';
 import { SubProjectAnalysis } from './models/SubProjectAnalysis';
 import { TargetMapping } from './models/TargetMapping';
+import { milestoneAnalysisFile } from './milestones';
 import { removeProjectPath } from './projectWorkspace';
 
 /**
@@ -20,6 +23,44 @@ import { removeProjectPath } from './projectWorkspace';
 async function deleteOldRuns(projectId: string, phase: string, currentRunId?: string): Promise<void> {
 	const phases = { $in: [phase, new RegExp(`^${phase}:`)] };
 	await Run.deleteMany({ projectId, phase: phases, ...(currentRunId ? { _id: { $ne: currentRunId } } : {}) });
+}
+
+/** Deletes the stored runs of exactly `phase` (and its sub-phases), except the one starting now. */
+export async function deletePhaseRuns(projectId: string, phase: string, currentRunId?: string): Promise<void> {
+	await deleteOldRuns(projectId, phase, currentRunId);
+}
+
+/** Clears the Stories phase: every milestone's stories and tasks, old runs (including the regenerations) and files. */
+export async function resetStories(project: Project, currentRunId?: string): Promise<void> {
+	await StoryPlan.deleteMany({ projectId: project.id });
+	await deleteOldRuns(project.id, 'stories', currentRunId);
+	await removeProjectPath(project.dest, 'migration/user-stories');
+	await removeProjectPath(project.dest, 'migration/tasks');
+}
+
+/** Clears one milestone's stories and tasks (not the others'), its old regeneration runs and files. */
+export async function resetMilestoneStories(project: Project, milestoneId: string, currentRunId?: string): Promise<void> {
+	await StoryPlan.deleteOne({ projectId: project.id, milestoneId });
+	await deleteOldRuns(project.id, `stories:${milestoneId}`, currentRunId);
+	await removeProjectPath(project.dest, `migration/user-stories/${milestoneId}`);
+	await removeProjectPath(project.dest, `migration/tasks/${milestoneId}`);
+}
+
+/** Clears one milestone's deep analysis, its old runs (except the one starting now) and file; the milestone stays. */
+export async function resetMilestoneAnalysis(project: Project, milestoneId: string, currentRunId?: string): Promise<void> {
+	await Milestone.updateOne({ projectId: project.id, milestoneId }, { $set: { deepAnalysis: null, deepAnalysisGeneratedAt: null } });
+	await deleteOldRuns(project.id, `milestone-analysis:${milestoneId}`, currentRunId);
+	await removeProjectPath(project.dest, milestoneAnalysisFile(milestoneId));
+}
+
+/** Clears the Milestones phase (the plan, renames, lock and deep analyses, old runs, files) and the Stories built on it. */
+export async function resetMilestones(project: Project, currentRunId?: string): Promise<void> {
+	await Milestone.deleteMany({ projectId: project.id });
+	await deleteOldRuns(project.id, 'milestones', currentRunId);
+	await deleteOldRuns(project.id, 'milestone-analysis', currentRunId);
+	await removeProjectPath(project.dest, 'migration/milestones.md');
+	await removeProjectPath(project.dest, 'migration/milestones');
+	await resetStories(project, currentRunId);
 }
 
 /** Clears the Rollout phase: the strategy and its sign-off, old runs and the file. */
@@ -42,12 +83,13 @@ export async function deleteScopeGapRuns(projectId: string, currentRunId?: strin
 	await deleteOldRuns(projectId, 'scope:gaps', currentRunId);
 }
 
-/** Clears the Scope phase (charter, gaps, choices and lock, old runs, the file) and the Target and Rollout built on it. */
+/** Clears the Scope phase (charter, gaps, choices and lock, old runs, the file) and the Target, Rollout and Milestones built on it. */
 export async function resetScope(project: Project, currentRunId?: string): Promise<void> {
 	await ScopeCharter.deleteOne({ projectId: project.id });
 	await deleteOldRuns(project.id, 'scope', currentRunId);
 	await removeProjectPath(project.dest, 'migration/modernization-charter.md');
 	await resetTarget(project, currentRunId);
+	await resetMilestones(project, currentRunId);
 }
 
 /** Clears the Dependencies phase (the analysis stored on the units and shared services, old runs, the file) and the Scope built on it. */

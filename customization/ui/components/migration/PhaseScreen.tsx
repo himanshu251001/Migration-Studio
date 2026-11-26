@@ -38,7 +38,8 @@ export function PhaseScreen({ screen, project }: { screen: Exclude<ScreenKey, 'r
 
 	return (
 		<StepActionsSlotContext.Provider value={slot}>
-			<div className="flex flex-col w-full p-space-lg space-y-space-lg text-on-surface">
+			<div className="flex w-full items-start">
+			<div className="flex flex-col flex-1 min-w-0 p-space-lg space-y-space-lg text-on-surface">
 				<ScreenHeader
 					title={project.name}
 					badges={<Badge className={done ? 'bg-tertiary/15 text-tertiary' : 'bg-secondary-container/20 text-secondary'}>{summary ? 'Plan complete' : done ? `${step.label} complete` : 'In progress'}</Badge>}
@@ -85,6 +86,7 @@ export function PhaseScreen({ screen, project }: { screen: Exclude<ScreenKey, 'r
 					)}
 			</div>
 			{askOpen && <AskPanel title="Migration" onClose={() => setAskOpen(false)} />}
+			</div>
 		</StepActionsSlotContext.Provider>
 	);
 }

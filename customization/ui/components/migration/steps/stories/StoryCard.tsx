@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { Badge, Button } from '@/components/ui';
 import type { Story } from '@/features/migration/stories';
 
+/** The line that says a legacy defect is not carried forward; shown as a warning. */
+const DEFECT_CRITERION = /do[- ]not[- ]carry[- ]forward|does not reproduce/i;
+
 /** One story with its acceptance criteria and tasks. The last criterion is a "do not carry forward" warning. */
 export function StoryCard({ story, busy, onRegenerate }: { story: Story; busy: boolean; onRegenerate: () => void }) {
 	const [open, setOpen] = useState(true);
@@ -23,7 +26,7 @@ export function StoryCard({ story, busy, onRegenerate }: { story: Story; busy: b
 				<div className="border-t border-outline-variant/30 p-space-sm space-y-space-sm">
 					<div className="text-label-md font-label-md text-on-surface-variant">Acceptance Criteria</div>
 					<ul className="space-y-1 text-body-sm font-body-sm">
-						{story.criteria.map((c, i) => <li key={c} className={i === story.criteria.length - 1 ? 'text-secondary' : ''}>☐ {c}</li>)}
+						{story.criteria.map(c => <li key={c} className={DEFECT_CRITERION.test(c) ? 'text-secondary' : ''}>☐ {c}</li>)}
 					</ul>
 					<div className="text-label-md font-label-md text-on-surface-variant">Tasks</div>
 					<ol className="list-decimal space-y-1 pl-space-md text-body-sm font-body-sm">

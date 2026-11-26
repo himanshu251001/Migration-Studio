@@ -65,19 +65,20 @@ export function stepTarget(stepIndex: number, reached: number): ScreenKey | unde
 
 export type StepState = 'done' | 'active' | 'next' | 'locked';
 
-/** State of a step relative to the screen currently shown. */
-export function stepState(current: ScreenDef, stepIndex: number): StepState {
-	if (current.step === -1) {
-		return stepIndex === 0 ? 'next' : 'locked';
+/**
+ * State of a step. Executed steps (those whose done screen has been reached) stay 'done'
+ * wherever the user navigates; only a step being re-run on its running screen is 'active'.
+ */
+export function stepState(current: ScreenDef, stepIndex: number, reached: number): StepState {
+	const isExecuted = (index: number): boolean =>
+		reached >= screenIndex(`${STEP_DEFS[index].slug}-done`) || (current.step === index && current.kind === 'done');
+
+	if (current.step === stepIndex && current.kind === 'running') {
+		return 'active';
 	}
-	if (stepIndex < current.step) {
+	if (isExecuted(stepIndex)) {
 		return 'done';
 	}
-	if (stepIndex === current.step) {
-		return current.kind === 'running' ? 'active' : 'done';
-	}
-	if (stepIndex === current.step + 1 && current.kind === 'done') {
-		return 'next';
-	}
-	return 'locked';
+	const firstPending = STEP_DEFS.findIndex((_, index) => !isExecuted(index));
+	return stepIndex === firstPending ? 'next' : 'locked';
 }

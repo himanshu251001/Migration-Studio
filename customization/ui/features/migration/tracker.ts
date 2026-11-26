@@ -14,7 +14,7 @@ export interface TrackerOption {
 }
 
 export const TRACKERS: readonly TrackerOption[] = [
-	{ id: 'github', label: 'GitHub Issues', available: true, targetLabel: 'Repository', targetPlaceholder: 'Repository (owner/repo)', targetPattern: /^[\w.-]+\/[\w.-]+$/ },
+	{ id: 'github', label: 'GitHub Issues', available: false, targetLabel: 'Repository', targetPlaceholder: 'Repository (owner/repo)', targetPattern: /^[\w.-]+\/[\w.-]+$/ },
 	{ id: 'linear', label: 'Linear', available: false, targetLabel: 'Team key', targetPlaceholder: 'Team key (e.g. ENG)', targetPattern: /^[A-Za-z0-9]+$/ },
 	{ id: 'jira', label: 'Jira', available: false, targetLabel: 'Project key', targetPlaceholder: 'Project key (e.g. MIG)', targetPattern: /^[A-Za-z][A-Za-z0-9_]+$/ }
 ];

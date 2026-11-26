@@ -3,8 +3,10 @@ import type { ApproachDecision, ApproachResult } from '@/features/migration/appr
 import type { ReviewComment } from '@/features/migration/comments';
 import type { IndexResult } from '@/features/migration/componentIndex';
 import type { DependenciesResult } from '@/features/migration/dependencies';
+import type { MilestonesDecision, MilestonesResult } from '@/features/migration/milestones';
 import type { RolloutDecision, RolloutResult } from '@/features/migration/rollout';
 import type { ScopeDecision, ScopeResult } from '@/features/migration/scope';
+import type { StoriesResult } from '@/features/migration/stories';
 import type { TargetDecision, TargetResult } from '@/features/migration/target';
 import type { UnitsDecision, UnitsResult } from '@/features/migration/units';
 import type { Project } from '@/features/migration/types';
@@ -175,6 +177,43 @@ const implemented: Partial<MigrationService> = {
 
 	async clearRolloutDecision(project: Project): Promise<void> {
 		await readJson(await fetch(url('/api/migration/rollout/decision', project), { method: 'DELETE' }));
+	},
+
+	async getMilestones(project: Project): Promise<MilestonesResult> {
+		return readJson<MilestonesResult>(await fetch(url('/api/migration/milestones', project)));
+	},
+
+	async runMilestones(project: Project, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void> {
+		await runStep('/api/migration/milestones', { projectId: project.id }, onProgress, signal);
+	},
+
+	async analyzeMilestone(project: Project, milestoneId: string, signal: AbortSignal): Promise<void> {
+		await runStep('/api/migration/milestones/analyze', { projectId: project.id, milestoneId }, () => undefined, signal);
+	},
+
+	async getMilestonesDecision(project: Project): Promise<MilestonesDecision | undefined> {
+		const { decision } = await readJson<{ decision: MilestonesDecision | null }>(await fetch(url('/api/migration/milestones/decision', project)));
+		return decision ?? undefined;
+	},
+
+	async saveMilestonesDecision(project: Project, decision: MilestonesDecision): Promise<void> {
+		await readJson(await fetch('/api/migration/milestones/decision', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId: project.id, decision }) }));
+	},
+
+	async clearMilestonesDecision(project: Project): Promise<void> {
+		await readJson(await fetch(url('/api/migration/milestones/decision', project), { method: 'DELETE' }));
+	},
+
+	async getStories(project: Project): Promise<StoriesResult> {
+		return readJson<StoriesResult>(await fetch(url('/api/migration/stories', project)));
+	},
+
+	async runStories(project: Project, onProgress: (progress: number) => void, signal: AbortSignal): Promise<void> {
+		await runStep('/api/migration/stories', { projectId: project.id }, onProgress, signal);
+	},
+
+	async regenerateStories(project: Project, milestoneId: string, storyId: string | undefined, signal: AbortSignal): Promise<void> {
+		await runStep('/api/migration/stories/regenerate', { projectId: project.id, milestoneId, ...(storyId ? { storyId } : {}) }, () => undefined, signal);
 	}
 };
 

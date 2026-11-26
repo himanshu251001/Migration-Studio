@@ -18,6 +18,8 @@ export interface MilestonesResult {
 	readonly milestones: readonly Milestone[];
 	/** Lines the optional deep analysis of a milestone reports, in order. `{name}` stands for the milestone name. */
 	readonly analysisLogs: readonly string[];
+	/** Milestones whose deep analysis was already generated (id to ISO time), so the screen shows them as done after a reload. */
+	readonly analyzed?: Readonly<Record<string, string>>;
 	readonly duration: string;
 }
 

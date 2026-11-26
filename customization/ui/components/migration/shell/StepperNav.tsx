@@ -16,7 +16,7 @@ export function StepperNav({ screen }: { screen: ScreenKey }) {
 		<nav aria-label="Workflow" className="w-full">
 			<ol className="flex gap-space-sm overflow-x-auto p-1">
 				{STEP_DEFS.map((step, i) => {
-					const state = stepState(current, i);
+					const state = stepState(current, i, reached);
 					const target = stepTarget(i, reached);
 					const isCurrent = target === screen;
 					const clickable = !!target && !isCurrent;

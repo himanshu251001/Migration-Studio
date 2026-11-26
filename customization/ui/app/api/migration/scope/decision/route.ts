@@ -3,7 +3,7 @@ import { scopeDecisionOf } from '@/lib/server/adapters/scope';
 import { buildCharterMarkdown } from '@/lib/server/charter';
 import { connectDB } from '@/lib/server/db';
 import { ScopeCharter } from '@/lib/server/models/ScopeCharter';
-import { deleteScopeGapRuns, resetTarget } from '@/lib/server/phaseReset';
+import { deleteScopeGapRuns, resetMilestones, resetTarget } from '@/lib/server/phaseReset';
 import { writeProjectFile } from '@/lib/server/projectWorkspace';
 import { resolveStepProject, runRouteError } from '@/lib/server/stepRoute';
 import { DATABASE_OPTIONS, ROLLOUT_STRATEGIES } from '@/lib/server/targetCatalog';
@@ -104,6 +104,8 @@ export async function PUT(request: Request): Promise<Response> {
 		await doc.save();
 		if (changed) {
 			await resetTarget(resolved.project);
+			// The milestones and their deep analyses were drawn for the locked stack.
+			await resetMilestones(resolved.project);
 		}
 		// The charter file names the locked stack once there is one.
 		const chosen = decision.stack === 'other' ? customStack : doc.candidates.find(c => c.id === decision.stack)?.name;
@@ -139,6 +141,7 @@ export async function DELETE(request: Request): Promise<Response> {
 			await deleteScopeGapRuns(resolved.project.id);
 		}
 		await resetTarget(resolved.project);
+		await resetMilestones(resolved.project);
 		return Response.json({ ok: true });
 	} catch (error) {
 		return runRouteError(error);

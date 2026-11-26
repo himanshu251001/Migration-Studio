@@ -59,7 +59,6 @@ export function PlanSummary({ project }: { project: Project }) {
 				</div>
 				<div className="flex flex-wrap gap-space-sm">
 					<Button icon="close" onClick={() => (handedOver ? exit() : setConfirmClose(true))}>Finish &amp; Close Migration</Button>
-					<Button variant="primary" icon="download" disabled={exported.kind === 'saving' || plan.length === 0 || !dest.trim()} onClick={() => void exportPlan()}>Export plan to destination</Button>
 				</div>
 			</div>
 			<ExportPanel project={project} plan={plan} dest={dest} onDestChange={setDest} state={exported} onExport={() => void exportPlan()} />

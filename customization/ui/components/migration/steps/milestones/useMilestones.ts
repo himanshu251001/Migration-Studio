@@ -12,6 +12,11 @@ export interface DeepAnalysis {
 	readonly at?: Date;
 }
 
+/** The deep analyses a result says were already generated. */
+function analyzedOf(result: MilestonesResult): Record<string, DeepAnalysis> {
+	return Object.fromEntries(Object.entries(result.analyzed ?? {}).map(([id, at]) => [id, { state: 'done' as const, at: new Date(at) }]));
+}
+
 export interface MilestonesState {
 	readonly milestones: MilestonesResult | undefined;
 	/** 0..1; always 1 on the done screen. */
@@ -59,9 +64,17 @@ export function useMilestones(project: Project, running: boolean): MilestonesSta
 				}
 				setMilestones(result);
 				setDecision(saved ?? { names: {}, locked: false });
+				setAnalysis(analyzedOf(result));
 				setReady(true);
 				if (running) {
 					await migration.runMilestones(project, setProgress, controller.signal);
+					// The real backend only has the plan once the run is over; the mock returns the same result.
+					const [finished, fresh] = await Promise.all([migration.getMilestones(project), migration.getMilestonesDecision(project)]);
+					if (!controller.signal.aborted) {
+						setMilestones(finished);
+						setDecision(fresh ?? { names: {}, locked: false });
+						setAnalysis(analyzedOf(finished));
+					}
 					setProgress(1);
 				}
 			} catch (e) {

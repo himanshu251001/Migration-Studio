@@ -41,6 +41,7 @@ export function TrackerPanel({ plan, onPushed }: { plan: readonly BacklogMilesto
 
 	return (
 		<Panel icon="bug_report" iconClass="text-secondary" title="Push to an issue tracker">
+			{!option.available && <p className="text-body-sm font-body-sm text-on-surface-variant">Coming soon: pushing to an issue tracker is not available yet.</p>}
 			<p className="text-body-sm font-body-sm text-on-surface-variant">Creates {plan.length} milestones (as GitHub milestones) and {stories} stories with acceptance criteria and tasks. The token is sent only with this request and is not stored.</p>
 			<div className="flex flex-wrap gap-space-sm" role="radiogroup" aria-label="Issue tracker">
 				{TRACKERS.map(t => (
@@ -51,8 +52,8 @@ export function TrackerPanel({ plan, onPushed }: { plan: readonly BacklogMilesto
 				))}
 			</div>
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-space-sm">
-				<input aria-label={option.targetLabel} className={FIELD} value={target} onChange={e => setTarget(e.target.value)} placeholder={option.targetPlaceholder} autoComplete="off" spellCheck={false} />
-				<input aria-label="API token" type="password" className={FIELD} value={token} onChange={e => setToken(e.target.value)} placeholder="API token" autoComplete="off" />
+				<input aria-label={option.targetLabel} className={FIELD} value={target} disabled={!option.available} onChange={e => setTarget(e.target.value)} placeholder={option.targetPlaceholder} autoComplete="off" spellCheck={false} />
+				<input aria-label="API token" type="password" className={FIELD} value={token} disabled={!option.available} onChange={e => setToken(e.target.value)} placeholder="API token" autoComplete="off" />
 			</div>
 			{state.kind === 'confirm' ? (
 				<div className="flex flex-wrap items-center gap-space-sm rounded-lg bg-surface-container-high p-space-sm text-body-sm font-body-sm">

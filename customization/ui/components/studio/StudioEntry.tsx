@@ -14,11 +14,11 @@ import { Welcome } from './Welcome';
 
 /**
  * Entry of the studio (center panel). Detects the projects of the opened folder and decides the view:
- * several -> select one, none -> intro page, then create one, one -> open it straight away. An already active project is resumed.
+ * several -> always select one (a previously active project is not resumed), none -> intro page, then create one, one -> open it straight away. An already active project is resumed.
  */
 export function StudioEntry() {
 	const detection = useDetectedProjects();
-	const { hydrated, project, reached, selectProject, openProject, resumeScreen } = useMigration();
+	const { hydrated, project, reached, selectProject, openProject, resumeScreen, clear } = useMigration();
 	const navigate = useNavigate();
 	const [creating, setCreating] = useState(false);
 
@@ -31,13 +31,16 @@ export function StudioEntry() {
 	}, []);
 
 	const single = detection.status === 'done' && detection.projects.length === 1 ? detection.projects[0] : undefined;
+	const multiple = detection.status === 'done' && detection.projects.length > 1;
 	const ready = hydrated && (detection.status === 'done' || detection.status === 'noFolder');
 
 	useEffect(() => {
 		if (!ready) {
 			return;
 		}
-		if (project) {
+		if (detection.status === 'done' && detection.projects.length > 1) {
+			clear(); // several projects: always ask which one, even if one was active before
+		} else if (project && (!single || project.id === single.id)) {
 			navigate.screen(SCREENS[reached]?.key ?? 'ready'); // resume where the user left off
 		} else if (single) {
 			selectProject(single);
@@ -52,7 +55,7 @@ export function StudioEntry() {
 	if (detection.status === 'noFolder') {
 		return <NoFolder />;
 	}
-	if (!ready || project || single || detection.status !== 'done') {
+	if (!ready || (project && !multiple) || single || detection.status !== 'done') {
 		return <p className="p-space-lg text-body-sm text-outline">Detecting projects…</p>;
 	}
 	if (detection.projects.length === 0) {

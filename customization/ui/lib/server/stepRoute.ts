@@ -29,3 +29,12 @@ export async function rejectIfRunning(projectId: string, phase: string): Promise
 	}
 	return undefined;
 }
+
+/** Like {@link rejectIfRunning}, but for every phase starting with `prefix` (a step and its sub-runs share one stored plan, so they must not overlap). */
+export async function rejectIfAnyRunning(projectId: string, prefix: string): Promise<Response | undefined> {
+	await connectDB();
+	if (await Run.exists({ projectId, phase: { $regex: `^${prefix}(:|$)` }, status: 'running' })) {
+		return Response.json({ error: 'This step is already running.' }, { status: 409 });
+	}
+	return undefined;
+}

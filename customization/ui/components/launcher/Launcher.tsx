@@ -24,12 +24,12 @@ export function Launcher() {
 
 	const detected = detection.status === 'done' ? detection.projects : undefined;
 
-	// Single project: open it automatically. Otherwise the center panel asks the user.
+	// A project restored from storage must not skip this, otherwise the user has to click "Open Migration Studio".
 	useEffect(() => {
-		if (!hydrated || !detected || project) {
+		if (!hydrated || !detected) {
 			return;
 		}
-		if (detected.length === 1) {
+		if (!project && detected.length === 1) {
 			selectProject(detected[0]);
 		}
 		if (!autoOpened) {
