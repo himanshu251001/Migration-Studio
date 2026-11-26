@@ -12,9 +12,28 @@ import { NoFolder } from './NoFolder';
 import { SelectProject } from './SelectProject';
 import { Welcome } from './Welcome';
 
+const ASKED_KEY = 'migration-studio-project-asked';
+
+/** Whether the project choice was already asked since the app was opened (survives navigation, not an app restart). */
+function wasAsked(): boolean {
+	try {
+		return sessionStorage.getItem(ASKED_KEY) === '1';
+	} catch {
+		return false;
+	}
+}
+
+function markAsked(): void {
+	try {
+		sessionStorage.setItem(ASKED_KEY, '1');
+	} catch {
+		// storage unavailable: ask again next time
+	}
+}
+
 /**
  * Entry of the studio (center panel). Detects the projects of the opened folder and decides the view:
- * several -> always select one (a previously active project is not resumed), none -> intro page, then create one, one -> open it straight away. An already active project is resumed.
+ * several -> select one when the app is opened (a project from a previous launch is not resumed, but navigating back within the same launch resumes it), none -> intro page, then create one, one -> open it straight away. An already active project is resumed.
  */
 export function StudioEntry() {
 	const detection = useDetectedProjects();
@@ -34,17 +53,28 @@ export function StudioEntry() {
 	const multiple = detection.status === 'done' && detection.projects.length > 1;
 	const ready = hydrated && (detection.status === 'done' || detection.status === 'noFolder');
 
+	const resumable = multiple && !!project && wasAsked() && detection.projects.some(candidate => candidate.id === project.id);
+
 	useEffect(() => {
 		if (!ready) {
 			return;
 		}
 		if (detection.status === 'done' && detection.projects.length > 1) {
-			clear(); // several projects: always ask which one, even if one was active before
-		} else if (project && (!single || project.id === single.id)) {
-			navigate.screen(SCREENS[reached]?.key ?? 'ready'); // resume where the user left off
+			if (resumable && project) {
+				navigate.screen(SCREENS[reached]?.key ?? 'ready'); // navigated back within the same launch: keep the chosen project
+			} else {
+				markAsked();
+				clear(); // several projects, app just opened: ask which one
+			}
 		} else if (single) {
-			selectProject(single);
-			navigate.screen(resumeScreen(single));
+			if (project?.id === single.id) {
+				navigate.screen(SCREENS[reached]?.key ?? 'ready'); // resume where the user left off
+			} else {
+				selectProject(single);
+				navigate.screen(resumeScreen(single));
+			}
+		} else if (project) {
+			clear(); // no project in this folder (or no folder): the stored one belongs to another folder
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ready]);
@@ -55,7 +85,7 @@ export function StudioEntry() {
 	if (detection.status === 'noFolder') {
 		return <NoFolder />;
 	}
-	if (!ready || (project && !multiple) || single || detection.status !== 'done') {
+	if (!ready || (project && (!multiple || resumable)) || single || detection.status !== 'done') {
 		return <p className="p-space-lg text-body-sm text-outline">Detecting projects…</p>;
 	}
 	if (detection.projects.length === 0) {

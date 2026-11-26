@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Badge, Button, Icon, Panel } from '@/components/ui';
-import { nextScreen, screenDef, STEP_DEFS, type ScreenKey } from '@/features/migration/steps';
+import { nextScreen, screenDef, screenIndex, STEP_DEFS, type ScreenKey } from '@/features/migration/steps';
 import type { Project } from '@/features/migration/types';
 import { useMigration } from '@/state/MigrationProvider';
 import { useNavigate } from '@/state/useNavigate';
@@ -19,7 +19,7 @@ import { StepperNav } from './shell/StepperNav';
  * Steps registered in STEP_VIEWS render their own content; the rest show a placeholder (milestones M3-M11).
  */
 export function PhaseScreen({ screen, project }: { screen: Exclude<ScreenKey, 'ready'>; project: Project }) {
-	const { go } = useMigration();
+	const { go, reached } = useMigration();
 	const navigate = useNavigate();
 	const [slot, setSlot] = useState<HTMLElement | null>(null);
 	const [askOpen, setAskOpen] = useState(false);
@@ -35,6 +35,9 @@ export function PhaseScreen({ screen, project }: { screen: Exclude<ScreenKey, 'r
 	const StepView = summary ? undefined : STEP_VIEWS[step.slug];
 	// A built running screen advances by itself when its work finishes.
 	const autoAdvances = !!StepView && !done;
+	// Revisiting a phase whose next one was already reached: no need to proceed again, the stepper navigates.
+	// The last phase is the exception: it keeps its "View Plan Summary" button, as the summary has no stepper entry.
+	const nextReached = !!next && !!nextStep && reached >= screenIndex(next);
 
 	return (
 		<StepActionsSlotContext.Provider value={slot}>
@@ -48,7 +51,7 @@ export function PhaseScreen({ screen, project }: { screen: Exclude<ScreenKey, 'r
 						<Button icon="tune" className="px-6! py-3!" onClick={navigate.settings} title="Settings">Settings</Button>
 						<Button icon="forum" className="px-6! py-3!" onClick={() => setAskOpen(true)}>Ask Mode</Button>
 						<div ref={setSlot} className="contents" />
-						{next && !autoAdvances && (
+						{next && !autoAdvances && !nextReached && (
 							<Button variant="primary" className="px-6! py-3!" onClick={() => go(next)} disabled={!canContinue}>
 								{nextStep ? `Proceed to Step ${def.step + 2}: ${nextStep.label}` : 'View Plan Summary'}
 								<Icon name="arrow_forward" className="text-[16px]" />
