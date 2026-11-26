@@ -15,7 +15,8 @@ let autoOpened = false;
 
 /**
  * Narrow sidebar view. Detects the projects of the opened folder, opens the studio in the center panel
- * (which shows the select / create / project view) and lists the active project's Source and Destination folders.
+ * (which shows the select / create
+ * / project view) and lists the active project's Source and Destination folders.
  */
 export function Launcher() {
 	const detection = useDetectedProjects();
